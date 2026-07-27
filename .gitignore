@@ -1,0 +1,33 @@
+# Agent / local tooling
+AGENTS.md
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# Data & models (large binary files should not go into Git)
+data/
+datasets/
+*.zip
+*.tar.gz
+*.h5
+*.pt
+*.pth
+*.onnx
+*.pkl
+
+# Experiment tracking
+mlruns/
+wandb/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
