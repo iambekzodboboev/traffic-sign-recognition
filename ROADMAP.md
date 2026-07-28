@@ -21,8 +21,9 @@ risk if not handled carefully (see stage 3).
       Drive despite the ~15GB free-tier squeeze, or upload directly to the
       Colab session disk each time). Not solved yet — needs a decision once
       we reach training.
-- [ ] 0.3 Add a `notebooks/` folder to the repo as home for the Colab
-      notebook(s).
+- [x] 0.3 Add a `notebooks/` folder to the repo as home for the Colab
+      notebook(s). Added with a connection-check notebook
+      (`00_colab_github_connection_check.ipynb`) to test 0.1.
 
 ## 1. Scope and problem definition — done
 
