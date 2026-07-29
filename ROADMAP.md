@@ -12,10 +12,14 @@ risk if not handled carefully (see stage 3).
 
 ## 0. Workflow setup (Colab + GitHub)
 
-- [ ] 0.1 Decide how Colab and GitHub connect. Recommended default: open the
-      notebook directly from GitHub in Colab (File -> Open notebook ->
-      GitHub tab), edit there, then File -> Save a copy in GitHub to push
-      back. No git commands needed inside Colab.
+- [x] 0.1 Decide how Colab and GitHub connect. Decided and **verified
+      working**: open the notebook directly from GitHub in Colab (File ->
+      Open notebook -> GitHub tab), edit there, then File -> Save a copy in
+      GitHub to push back — confirmed via the `Created using Colab` commit
+      on GitHub. GPU also confirmed working (T4, `CUDA available: True`) —
+      note: each open notebook tab in Colab has its own separate runtime,
+      so hardware accelerator must be set per notebook, not once globally.
+      No git commands needed inside Colab.
 - [x] 0.2 Decide how the dataset gets into Colab for each session. Original
       dataset source confirmed:
       [traffic-signs-in-post-soviet-states-200-classes](https://www.kaggle.com/datasets/mikhailkosov/traffic-signs-in-post-soviet-states-200-classes)
