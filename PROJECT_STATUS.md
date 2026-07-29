@@ -27,17 +27,21 @@ Stage 3 — Data audit and EDA (see `ROADMAP.md` for full step-by-step plan)
 - Stage 3.2 done: class distribution confirmed (248-1,845 images/class,
   mean 583) — real but moderate imbalance, no classes with only a
   handful of images
+- Stage 3.3 done: image sizes range 25-2,749px wide, 25-1,496px tall
+  (median only 191x157 — long tail of larger images); aspect ratio mostly
+  near 1.0 with a real tail to 5.88 (wide/thin plates); color mode is
+  majority RGBA (96,444) vs RGB (20,198), no grayscale
+- Stage 3.4 done: visual spot-check of 8 random classes x 4 images each,
+  all internally consistent, no labeling issues found
 - Work for stage 3 is in `notebooks/02_data_audit_eda.ipynb`
 
 ## Current task
 
-Stage 3.3 — image property audit (resolution range, aspect ratios, color
-mode, file size range)
+Stage 3.5 — build a class ID -> human-readable name mapping using the
+`Classes/` folder
 
 ## Next
 
-- 3.3 Image property audit
-- 3.4 Visual sample audit
 - 3.5 Class ID -> human-readable name mapping
 - 3.6 Investigate track/frame-numbered filenames for leakage risk
 - 3.7 Write up data audit findings

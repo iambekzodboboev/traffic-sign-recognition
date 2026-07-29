@@ -63,10 +63,22 @@ Git/GitHub set up, Python environment installed, dataset present locally.
       toward the max. No classes with only a handful of images, so class
       weighting + moderate augmentation for smaller classes should be
       enough later (no need for drastic measures).
-- [ ] 3.3 Image property audit: resolution range, aspect ratios, color mode
-      (RGB vs grayscale), file size range.
-- [ ] 3.4 Visual sample audit: plot a grid of sample images from a handful of
-      classes to sanity-check labels are actually correct.
+- [x] 3.3 Image property audit: resolution range, aspect ratios, color mode
+      (RGB vs grayscale), file size range. **Done, verified in Colab**:
+      width 25-2,749px, height 25-1,496px, but median only 191x157 (long
+      tail of larger images pulls the mean up) — a modest target resize
+      size (e.g. 64x64 or 128x128) makes sense. Aspect ratio mostly near
+      1.0 (median 1.065) with a real tail up to 5.88 (wide/thin plates).
+      Color mode: majority RGBA (96,444), minority RGB (20,198) — all have
+      real color, no grayscale, but alpha channel needs flattening to RGB
+      before training.
+- [x] 3.4 Visual sample audit: plot a grid of sample images from a handful of
+      classes to sanity-check labels are actually correct. **Done, verified
+      in Colab**: 8 random classes x 4 images each, all rows internally
+      consistent (same sign type per row despite angle/lighting/quality
+      differences). No labeling issues found. Confirms non-square classes
+      like time-restriction text plates (e.g. class 189) are a real,
+      expected sign type, not a data error.
 - [ ] 3.5 Build a class ID -> human-readable name mapping using the
       `Classes/` folder (needed later so predictions say "Stop sign" instead
       of "class 14").
