@@ -88,18 +88,29 @@ Git/GitHub set up, Python environment installed, dataset present locally.
       match. One data quirk found: class 81 has two conflicting names in
       the source taxonomy ("Height limit - 3.5" vs "Height limit - 4.5"),
       flagged in the CSV rather than silently guessing.
-- [ ] 3.6 Investigate the track/frame-like filenames (e.g.
+- [x] 3.6 Investigate the track/frame-like filenames (e.g.
       `00000_00000_00017.png`) to confirm whether multiple images are near-
       duplicate frames of the same physical sign. This determines how we
-      must split data in stage 4 to avoid leakage.
-- [ ] 3.7 Write up findings (imbalance, leakage risk, image properties) as a
-      short summary in `PROJECT_STATUS.md`.
+      must split data in stage 4 to avoid leakage. **Done, verified**:
+      confirmed real for the ~10.3% of files matching the clean pattern
+      (~900 groups, mean ~13 images/group, ~82% with 5+ images, visually
+      confirmed as near-duplicate frames). But this dataset mixes several
+      naming conventions from what looks like multiple merged sources —
+      the other ~90% of files don't cleanly parse into a track ID.
+      Filename parsing alone isn't sufficient to build safe splits;
+      stage 4.1 needs content-based near-duplicate detection (e.g.
+      perceptual hashing) to cover the whole dataset.
+- [x] 3.7 Write up findings (imbalance, leakage risk, image properties) as a
+      short summary in `PROJECT_STATUS.md`. **Done** — see the "Stage 3
+      data audit summary" section there.
 
 ## 4. Preprocessing and leakage prevention
 
-- [ ] 4.1 Decide the train/validation/test split strategy. If 3.6 confirms
-      grouped frames, split by group/track, not by individual image, so no
-      near-duplicate leaks across splits.
+- [ ] 4.1 Decide the train/validation/test split strategy. Per 3.6: build
+      near-duplicate groups via content-based hashing (not filename
+      parsing alone, which only covers ~10% of files), then split by
+      group, not by individual image, so no near-duplicate leaks across
+      splits.
 - [ ] 4.2 Implement the split and save it as a manifest (a CSV of
       filename -> split), rather than physically copying files.
 - [ ] 4.3 Decide the preprocessing pipeline: target image size, normalization,

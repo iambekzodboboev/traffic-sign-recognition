@@ -37,18 +37,63 @@ Stage 3 — Data audit and EDA (see `ROADMAP.md` for full step-by-step plan)
   `Classes/` folder structure, committed at `metadata/class_names.csv`;
   one data quirk flagged (class 81 has two conflicting names in the
   source taxonomy)
+- Stage 3.6 done: confirmed near-duplicate/leakage risk is real for the
+  ~10.3% of files with cleanly parseable track filenames; the rest use
+  other naming conventions (dataset looks merged from multiple sources)
+  and need content-based deduplication instead of filename parsing
+- Stage 3.7 done: findings written up below
 - Work for stage 3 is in `notebooks/02_data_audit_eda.ipynb`
+
+## Stage 3 data audit summary
+
+**Class balance**: 200 classes, 116,642 images, 248-1,845 images/class
+(mean 583). Real but moderate imbalance — no classes with only a handful
+of images, so class weighting plus modest augmentation for smaller
+classes should be enough; no drastic measures needed.
+
+**Image properties**: sizes range from 25px to 2,749px wide (median only
+191x157 — a long tail of larger images pulls the mean up), so a modest
+target resize (e.g. 64x64 or 128x128) makes sense rather than trying to
+preserve the outliers' resolution. Aspect ratio is mostly near-square
+(median 1.065) with a real tail up to 5.88 for wide/thin signs (e.g. text
+plates) — resizing to a square target won't distort most images much.
+Color mode is majority RGBA (96,444) vs RGB (20,198), no grayscale — the
+alpha channel needs flattening to RGB before training.
+
+**Visual/label quality**: spot-checked 8 random classes x 4 images each,
+all internally consistent, no mislabeled folders found.
+
+**Class names**: mapped from the dataset's own `Classes/` folder, saved
+at `metadata/class_names.csv`. One data quirk: class 81 has two
+conflicting names in the source taxonomy ("Height limit - 3.5" vs "-
+4.5") — flagged, doesn't affect training (numeric ID is what's used),
+only the human-readable label.
+
+**Data leakage risk (the important one)**: filenames suggest multiple
+photos of the same physical sign exist as near-duplicate frames (e.g.
+`00000_00000_00017.png` = class/track/frame). Confirmed real for the
+~10.3% of files that cleanly match this pattern — ~900 (class, track)
+groups, averaging ~13 images each, ~82% with 5+ images, visually
+confirmed as the same sign photographed moments apart. However, filename
+parsing only reliably covers about 10% of the dataset; the rest use other
+naming conventions, consistent with this dataset being merged from
+multiple original sources. **Decision for stage 4.1**: build near-
+duplicate groups using content-based detection (e.g. perceptual image
+hashing) across the whole dataset, not filename parsing alone, then split
+train/val/test by group — never by individual image — to avoid leaking
+near-identical frames across the split.
 
 ## Current task
 
-Stage 3.6 — investigate whether the track/frame-numbered filenames are
-near-duplicate frames of the same physical sign (data-leakage risk for
-train/val/test splitting)
+Stage 4.1 — decide the train/validation/test split strategy (content-
+based near-duplicate grouping, then split by group)
 
 ## Next
 
-- 3.6 Investigate track/frame-numbered filenames for leakage risk
-- 3.7 Write up data audit findings
+- 4.1 Train/val/test split strategy
+- 4.2 Implement the split as a manifest
+- 4.3 Preprocessing pipeline (resize, normalize, augmentation plan)
+- 4.4 Build the PyTorch Dataset/DataLoader
 
 ## Known problems / blockers
 
