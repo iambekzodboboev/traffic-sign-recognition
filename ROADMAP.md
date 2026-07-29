@@ -16,14 +16,16 @@ risk if not handled carefully (see stage 3).
       notebook directly from GitHub in Colab (File -> Open notebook ->
       GitHub tab), edit there, then File -> Save a copy in GitHub to push
       back. No git commands needed inside Colab.
-- [x] 0.2 Decide how the dataset gets into Colab for each session. Decided:
-      re-download directly inside Colab each session via the Kaggle API,
-      from [traffic-signs-in-post-soviet-states-200-classes](https://www.kaggle.com/datasets/mikhailkosov/traffic-signs-in-post-soviet-states-200-classes)
-      (confirmed to match the local dataset). Avoids the Google Drive 15GB
-      free-tier limit and slow local upload. Implemented in
-      `notebooks/01_dataset_download_colab.ipynb` (needs a personal
-      `kaggle.json` API token, uploaded fresh each session, never committed
-      to git).
+- [x] 0.2 Decide how the dataset gets into Colab for each session. Original
+      dataset source confirmed:
+      [traffic-signs-in-post-soviet-states-200-classes](https://www.kaggle.com/datasets/mikhailkosov/traffic-signs-in-post-soviet-states-200-classes)
+      on Kaggle (matches the local dataset). Final decision: the user
+      uploaded the dataset zip to their own Google Drive, so each Colab
+      session downloads it from there via `gdown` (fast, sequential, no
+      Kaggle token needed) and unzips it to local session disk before use
+      — reading the 116,642 individual images directly from a mounted
+      Drive would be too slow for training. Implemented in
+      `notebooks/01_dataset_download_colab.ipynb`.
 - [x] 0.3 Add a `notebooks/` folder to the repo as home for the Colab
       notebook(s). Added with a connection-check notebook
       (`00_colab_github_connection_check.ipynb`) to test 0.1.
