@@ -106,18 +106,41 @@ Git/GitHub set up, Python environment installed, dataset present locally.
 
 ## 4. Preprocessing and leakage prevention
 
-- [ ] 4.1 Decide the train/validation/test split strategy. Per 3.6: build
+- [x] 4.1 Decide the train/validation/test split strategy. Per 3.6: build
       near-duplicate groups via content-based hashing (not filename
       parsing alone, which only covers ~10% of files), then split by
       group, not by individual image, so no near-duplicate leaks across
-      splits.
-- [ ] 4.2 Implement the split and save it as a manifest (a CSV of
-      filename -> split), rather than physically copying files.
-- [ ] 4.3 Decide the preprocessing pipeline: target image size, normalization,
+      splits. **Done**: 64-bit average-hash per image, grouped within each
+      class by Hamming distance <= 6, computed once locally (deterministic,
+      seed 42) via `scripts/build_split_manifest.py` — not recomputed
+      randomly each session, so results stay comparable across the
+      project. Known limitation stated honestly: grouping is fairly
+      strict (~2.6 images/group avg, vs ~13/group for the filename-
+      confirmed tracks in 3.6), so it catches exact/near-exact duplicates
+      reliably but may miss some more visually-different frames of the
+      same sign. Meaningfully reduces leakage risk vs. naive per-image
+      splitting; not a perfect guarantee.
+- [x] 4.2 Implement the split and save it as a manifest (a CSV of
+      filename -> split), rather than physically copying files. **Done**:
+      `metadata/split_manifest.csv` (116,642 rows), split 70/15/15 by
+      group (31,820 / 6,822 / 6,822 groups), ~70.9/15.5/13.5% by image.
+      Validated in `notebooks/03_preprocessing.ipynb` (4.2): all manifest
+      paths exist on disk, row count matches dataset image count, and no
+      group spans more than one split.
+- [x] 4.3 Decide the preprocessing pipeline: target image size, normalization,
       and an augmentation plan for the smaller classes to help with the
-      imbalance found in 3.2.
-- [ ] 4.4 Build the PyTorch Dataset/DataLoader from the split manifest; sanity
-      check by loading and visualizing one batch.
+      imbalance found in 3.2. **Done**: 64x64 target (median was 191x157
+      per 3.3), letterbox resize (pad to square then resize, not a plain
+      stretch, since aspect ratio had a real tail to 5.88), RGBA -> RGB,
+      ImageNet normalization (keeps a pretrained-backbone option open for
+      6.1), light augmentation (rotation + color jitter) on training data
+      only.
+- [x] 4.4 Build the PyTorch Dataset/DataLoader from the split manifest; sanity
+      check by loading and visualizing one batch. **Done**: custom
+      `TrafficSignDataset` reading the manifest, `WeightedRandomSampler`
+      on the training loader (oversamples minority classes, addressing
+      3.2's imbalance without class-specific augmentation logic). Pending
+      user's visual confirmation of the sanity-check batch in Colab.
 
 ## 5. Baseline model and experiments
 

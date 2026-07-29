@@ -6,7 +6,8 @@ Traffic Sign Recognition
 
 ## Current stage
 
-Stage 3 — Data audit and EDA (see `ROADMAP.md` for full step-by-step plan)
+Stage 4 — Preprocessing and leakage prevention (see `ROADMAP.md` for full
+step-by-step plan)
 
 ## Completed
 
@@ -43,6 +44,23 @@ Stage 3 — Data audit and EDA (see `ROADMAP.md` for full step-by-step plan)
   and need content-based deduplication instead of filename parsing
 - Stage 3.7 done: findings written up below
 - Work for stage 3 is in `notebooks/02_data_audit_eda.ipynb`
+- Stage 4.1 done: train/val/test split strategy decided and implemented —
+  64-bit average-hash near-duplicate grouping within each class (Hamming
+  distance <= 6), computed once deterministically (not re-randomized each
+  session) via `scripts/build_split_manifest.py`
+- Stage 4.2 done: split saved as `metadata/split_manifest.csv` (116,642
+  rows), 70/15/15 by group (31,820 / 6,822 / 6,822), ~70.9/15.5/13.5% by
+  image; validated in Colab (all paths exist, row count matches, no group
+  spans multiple splits)
+- Stage 4.3 done: preprocessing pipeline decided — 64x64 target, letterbox
+  resize (pad to square, not a plain stretch, given the aspect-ratio tail
+  found in 3.3), RGBA -> RGB, ImageNet normalization, light augmentation
+  (rotation + color jitter) on training data only
+- Stage 4.4 done: PyTorch `TrafficSignDataset` + DataLoaders built from the
+  manifest, with a `WeightedRandomSampler` on training to oversample
+  minority classes (addresses 3.2's imbalance); sanity-check batch
+  visualization added, pending the user's visual confirmation in Colab
+- Work for stage 4 is in `notebooks/03_preprocessing.ipynb`
 
 ## Stage 3 data audit summary
 
@@ -83,17 +101,27 @@ hashing) across the whole dataset, not filename parsing alone, then split
 train/val/test by group — never by individual image — to avoid leaking
 near-identical frames across the split.
 
+## Stage 4 known limitation (stated honestly)
+
+The near-duplicate grouping is fairly strict (~2.6 images/group on
+average, vs. ~13/group for the filename-confirmed tracks in 3.6), so it
+reliably catches exact/near-exact duplicates but may miss some more
+visually-different frames of the same physical sign (e.g. a longer zoom
+sequence). It meaningfully reduces leakage risk versus naive per-image
+splitting, but is not a perfect guarantee — worth mentioning as a known
+limitation if asked during defense.
+
 ## Current task
 
-Stage 4.1 — decide the train/validation/test split strategy (content-
-based near-duplicate grouping, then split by group)
+Waiting for the user to visually confirm the stage 4.4 sanity-check batch
+in Colab, then move to stage 5 (baseline model and experiments)
 
 ## Next
 
-- 4.1 Train/val/test split strategy
-- 4.2 Implement the split as a manifest
-- 4.3 Preprocessing pipeline (resize, normalize, augmentation plan)
-- 4.4 Build the PyTorch Dataset/DataLoader
+- Confirm stage 4 sanity check
+- 5.1 Set up MLflow tracking
+- 5.2 Baseline model, prove the training loop works end-to-end
+- 5.3 Train baseline on full dataset
 
 ## Known problems / blockers
 
