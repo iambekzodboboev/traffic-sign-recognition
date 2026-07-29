@@ -55,8 +55,14 @@ Git/GitHub set up, Python environment installed, dataset present locally.
       check for corrupt/unreadable images. **Done, verified in Colab**: all
       200 class folders present, all 116,642 images checked (full check,
       not a sample) — 0 corrupt/unreadable.
-- [ ] 3.2 Class distribution: bar chart of images per class, confirm/quantify
-      the imbalance already spotted (248-1,845 per class).
+- [x] 3.2 Class distribution: bar chart of images per class, confirm/quantify
+      the imbalance already spotted (248-1,845 per class). **Done, verified
+      in Colab**: confirmed 248-1,845 range, mean 583 images/class
+      (116,642 / 200). Imbalance is real but moderate/gradual, not
+      extreme — most classes cluster 250-1,000, with a handful spiking up
+      toward the max. No classes with only a handful of images, so class
+      weighting + moderate augmentation for smaller classes should be
+      enough later (no need for drastic measures).
 - [ ] 3.3 Image property audit: resolution range, aspect ratios, color mode
       (RGB vs grayscale), file size range.
 - [ ] 3.4 Visual sample audit: plot a grid of sample images from a handful of
