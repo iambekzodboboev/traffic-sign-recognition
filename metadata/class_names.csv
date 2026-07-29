@@ -1,0 +1,201 @@
+class_id,name,category
+0,Maximum speed limit,3 Prohibitory
+1,Exit to a one-way road - left,5 Special regulations
+2,Speed bump,5 Special regulations
+3,The tow truck is working,8 Additional
+4,Photovideofixation,8 Additional
+5,Except for the disabled,8 Additional
+6,End of maximum speed limit,3 Prohibitory
+7,Disabled people,8 Additional
+8,Wet coating,8 Additional
+9,No overtaking,3 Prohibitory
+10,No overtaking by lorries,3 Prohibitory
+11,Crossroads (with a minor road),2 Warning
+12,Priority road,1 Priority
+13,Give way,1 Priority
+14,Stop,1 Priority
+15,Traffic prohibited,3 Prohibitory
+16,No lorries,3 Prohibitory
+17,Entry prohibited,3 Prohibitory
+18,Other danger,2 Warning
+19,Curve left,2 Warning
+20,Curve right,2 Warning
+21,Series of curves,2 Warning
+22,Uneven surface,2 Warning
+23,Slippery road,2 Warning
+24,Road narrowing,2 Warning
+25,Roadworks,2 Warning
+26,Traffic signals,2 Warning
+27,Pedestrian crossing,2 Warning
+28,Children,2 Warning
+29,Bicycle path intersection,2 Warning
+30,Ice,2 Warning
+31,Wild animals,2 Warning
+32,End of all restrictions,3 Prohibitory
+33,Go right,4 Mandatory
+34,Go left,4 Mandatory
+35,Go straight,4 Mandatory
+36,Go straight or right,4 Mandatory
+37,Go straight or left,4 Mandatory
+38,Detour on the right,4 Mandatory
+39,Detour on the left,4 Mandatory
+40,Direction of roundabout traffic,4 Mandatory
+41,End of overtaking restriction,3 Prohibitory
+42,End of overtaking by lorries restriction,3 Prohibitory
+43,End of the priority road,1 Priority
+44,Minor road three-way intersection - right,1 Priority
+45,Minor road three-way intersection - left,1 Priority
+46,Priority of oncoming traffic,1 Priority
+47,Priority over oncoming traffic,1 Priority
+48,Railway crossing with a barrier,2 Warning
+49,Railway crossing without a barrier,2 Warning
+50,Single-track railway,2 Warning
+51,Multi-track railway,2 Warning
+52,Approaching a railway crossing,2 Warning
+53,Tramway crossing,2 Warning
+54,Intersection of equivalent roads,2 Warning
+55,Roundabout,2 Warning
+56,Drawbridge,2 Warning
+57,Exit to an embankment,2 Warning
+58,Steep descent,2 Warning
+59,Steep ascent,2 Warning
+60,Speed bump,2 Warning
+61,Gravel surface,2 Warning
+62,Dangerous roadside,2 Warning
+63,Two-way traffic,2 Warning
+64,Domesticated animals,2 Warning
+65,Rockfall,2 Warning
+66,Crosswind,2 Warning
+67,Low-flying aircraft,2 Warning
+68,Tunnel,2 Warning
+69,Congestion,2 Warning
+70,Hazard chevron - left,2 Warning
+71,Hazard chevron - right,2 Warning
+72,No motor vehicles,3 Prohibitory
+73,No motorcycles,3 Prohibitory
+74,No tractors,3 Prohibitory
+75,No vehicles with trailer,3 Prohibitory
+76,No horse-drawn carts,3 Prohibitory
+77,No cycling,3 Prohibitory
+78,No pedestrians,3 Prohibitory
+79,Vehicle weight limit - 7,3 Prohibitory
+80,Weight per axle limit,3 Prohibitory
+81,"Height limit (3.5 or 4.5, ambiguous in source data)",3 Prohibitory
+82,Width limit - 2.7,3 Prohibitory
+83,Length limit - 10,3 Prohibitory
+84,Minimum distance limit - 70,3 Prohibitory
+85,Customs,3 Prohibitory
+86,Danger,3 Prohibitory
+87,Control,3 Prohibitory
+88,No right turn,3 Prohibitory
+89,No left turn,3 Prohibitory
+90,No U-turn,3 Prohibitory
+91,No beeping,3 Prohibitory
+92,No stopping,3 Prohibitory
+93,No parking,3 Prohibitory
+94,No parking on odd days of the month,3 Prohibitory
+95,No parking on even days of the month,3 Prohibitory
+96,No vehicles with dangerous goods,3 Prohibitory
+97,No vehicles with explosive and flammable loads,3 Prohibitory
+98,Go right or left,4 Mandatory
+99,Detour on the right or left,4 Mandatory
+100,Cycle path,4 Mandatory
+101,End of a cycle path,4 Mandatory
+102,Footpath,4 Mandatory
+103,Shared-use path,4 Mandatory
+104,End of shared-use path,4 Mandatory
+105,Segregated pedestrian and cycle path,4 Mandatory
+106,End of segregated pedestrian and cycle path,4 Mandatory
+107,Minimum speed limit,4 Mandatory
+108,End of minimum speed limit,4 Mandatory
+109,Direction of movement of vehicles with dangerous goods,4 Mandatory
+110,Motorway,5 Special regulations
+111,End of motorway,5 Special regulations
+112,Road for cars,5 Special regulations
+113,End of road for cars,5 Special regulations
+114,One-way road,5 Special regulations
+115,End of one-way road,5 Special regulations
+116,Exit to a one-way road - right,5 Special regulations
+117,Reversible lane,5 Special regulations
+118,End of reversible lane,5 Special regulations
+119,Reversible lane,5 Special regulations
+120,Road with a contraflow bus lane,5 Special regulations
+121,Road with a contraflow cycle lane,5 Special regulations
+122,End of road with a contraflow bus lane,5 Special regulations
+123,End of road with a contraflow cycle lane,5 Special regulations
+124,Exit to road with a contraflow bus lane,5 Special regulations
+125,Exit to road with a contraflow cycle lane,5 Special regulations
+126,Bus lane,5 Special regulations
+127,End of bus lane,5 Special regulations
+128,Cycle lane,5 Special regulations
+129,End of cycle lane,5 Special regulations
+130,Lane directions,5 Special regulations
+131,End of the lane,5 Special regulations
+132,Number of lanes,5 Special regulations
+133,Bus andor trolleybus stop location,5 Special regulations
+134,Tram stop location,5 Special regulations
+135,Parking place for passenger taxis,5 Special regulations
+136,Residential area,5 Special regulations
+137,End of residential area,5 Special regulations
+138,Built-up area begins,5 Special regulations
+139,End of built-up area,5 Special regulations
+140,No parking zone,5 Special regulations
+141,End of no parking zone,5 Special regulations
+142,Regulated parking zone,5 Special regulations
+143,End of the regulated parking zone,5 Special regulations
+144,Maximum speed limit zone - 30,5 Special regulations
+145,End of maximum speed limit zone - 30,5 Special regulations
+146,Pedestrian zone,5 Special regulations
+147,End of pedestrian zone,5 Special regulations
+148,General maximum speed limits,6 Information
+149,Recommended speed - 50,6 Information
+150,Place for a U-turn,6 Information
+151,The area for a U-turn,6 Information
+152,Parking (parking space),6 Information
+153,Emergency stop lane,6 Information
+154,Underground pedestrian crossing,6 Information
+155,Above ground pedestrian crossing,6 Information
+156,Deadlock,6 Information
+157,Preliminary direction indicator,6 Information
+158,Traffic scheme,6 Information
+159,Direction indicator,6 Information
+160,Distance indicator,6 Information
+161,Kilometre marker,6 Information
+162,Route number,6 Information
+163,Truck route,6 Information
+164,Stop line,6 Information
+165,Point of medical care,7 Service
+166,Hospital,7 Service
+167,Gas station,7 Service
+168,Vehicle maintenance,7 Service
+169,Car washing,7 Service
+170,Phone,7 Service
+171,Food point,7 Service
+172,Drinking water,7 Service
+173,Hotel or motel,7 Service
+174,Camping,7 Service
+175,Place of rest,7 Service
+176,Traffic police post,7 Service
+177,Police,7 Service
+178,Transport control point,7 Service
+179,Pool or beach,7 Service
+180,Toilet,7 Service
+181,Emergency telephone number,7 Service
+182,Fire extinguisher,7 Service
+183,Distance to the object,8 Additional
+184,Coverage area,8 Additional
+185,Type of vehicle,8 Additional
+186,Except for the type of vehicle,8 Additional
+187,"Saturdays, Sundays and holidays",8 Additional
+188,Working days,8 Additional
+189,Validity period,8 Additional
+190,Method of parking the vehicle,8 Additional
+191,Parking with an idle engine,8 Additional
+192,Paid services,8 Additional
+193,Limitation of parking duration,8 Additional
+194,Place for car inspection,8 Additional
+195,Limitation of the permitted maximum mass,8 Additional
+196,Dangerous roadside,8 Additional
+197,Priority road,1 Priority
+198,Traffic lane,8 Additional
+199,Blind pedestrians,8 Additional

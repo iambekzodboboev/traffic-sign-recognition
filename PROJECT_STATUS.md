@@ -33,16 +33,20 @@ Stage 3 — Data audit and EDA (see `ROADMAP.md` for full step-by-step plan)
   majority RGBA (96,444) vs RGB (20,198), no grayscale
 - Stage 3.4 done: visual spot-check of 8 random classes x 4 images each,
   all internally consistent, no labeling issues found
+- Stage 3.5 done: class ID -> name mapping built from the dataset's own
+  `Classes/` folder structure, committed at `metadata/class_names.csv`;
+  one data quirk flagged (class 81 has two conflicting names in the
+  source taxonomy)
 - Work for stage 3 is in `notebooks/02_data_audit_eda.ipynb`
 
 ## Current task
 
-Stage 3.5 — build a class ID -> human-readable name mapping using the
-`Classes/` folder
+Stage 3.6 — investigate whether the track/frame-numbered filenames are
+near-duplicate frames of the same physical sign (data-leakage risk for
+train/val/test splitting)
 
 ## Next
 
-- 3.5 Class ID -> human-readable name mapping
 - 3.6 Investigate track/frame-numbered filenames for leakage risk
 - 3.7 Write up data audit findings
 

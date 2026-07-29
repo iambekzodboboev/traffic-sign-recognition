@@ -79,9 +79,15 @@ Git/GitHub set up, Python environment installed, dataset present locally.
       differences). No labeling issues found. Confirms non-square classes
       like time-restriction text plates (e.g. class 189) are a real,
       expected sign type, not a data error.
-- [ ] 3.5 Build a class ID -> human-readable name mapping using the
+- [x] 3.5 Build a class ID -> human-readable name mapping using the
       `Classes/` folder (needed later so predictions say "Stop sign" instead
-      of "class 14").
+      of "class 14"). **Done**: derived directly from the dataset zip's
+      folder structure (not hand-typed, to avoid transcription errors
+      across 200 rows), committed at `metadata/class_names.csv`, and
+      cross-checked in Colab against the 200 classes with images — exact
+      match. One data quirk found: class 81 has two conflicting names in
+      the source taxonomy ("Height limit - 3.5" vs "Height limit - 4.5"),
+      flagged in the CSV rather than silently guessing.
 - [ ] 3.6 Investigate the track/frame-like filenames (e.g.
       `00000_00000_00017.png`) to confirm whether multiple images are near-
       duplicate frames of the same physical sign. This determines how we
