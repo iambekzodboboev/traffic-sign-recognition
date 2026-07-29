@@ -46,8 +46,10 @@ Git/GitHub set up, Python environment installed, dataset present locally.
 
 ## 3. Data audit and EDA
 
-- [ ] 3.1 Verify dataset integrity: confirm all 200 class folders load, spot
-      check for corrupt/unreadable images.
+- [x] 3.1 Verify dataset integrity: confirm all 200 class folders load, spot
+      check for corrupt/unreadable images. **Done, verified in Colab**: all
+      200 class folders present, all 116,642 images checked (full check,
+      not a sample) — 0 corrupt/unreadable.
 - [ ] 3.2 Class distribution: bar chart of images per class, confirm/quantify
       the imbalance already spotted (248-1,845 per class).
 - [ ] 3.3 Image property audit: resolution range, aspect ratios, color mode
