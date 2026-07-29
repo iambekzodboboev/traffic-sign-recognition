@@ -25,7 +25,9 @@ risk if not handled carefully (see stage 3).
       Kaggle token needed) and unzips it to local session disk before use
       — reading the 116,642 individual images directly from a mounted
       Drive would be too slow for training. Implemented in
-      `notebooks/01_dataset_download_colab.ipynb`.
+      `notebooks/01_dataset_download_colab.ipynb`. **Verified working**:
+      run in Colab, output matched the local audit exactly (200 classes,
+      116,642 images).
 - [x] 0.3 Add a `notebooks/` folder to the repo as home for the Colab
       notebook(s). Added with a connection-check notebook
       (`00_colab_github_connection_check.ipynb`) to test 0.1.
