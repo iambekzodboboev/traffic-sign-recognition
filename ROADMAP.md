@@ -25,10 +25,15 @@ risk if not handled carefully (see stage 3).
       [traffic-signs-in-post-soviet-states-200-classes](https://www.kaggle.com/datasets/mikhailkosov/traffic-signs-in-post-soviet-states-200-classes)
       on Kaggle (matches the local dataset). Final decision: the user
       uploaded the dataset zip to their own Google Drive, so each Colab
-      session downloads it from there via `gdown` (fast, sequential, no
-      Kaggle token needed) and unzips it to local session disk before use
-      — reading the 116,642 individual images directly from a mounted
-      Drive would be too slow for training. Implemented in
+      session downloads it from there and unzips it to local session disk
+      before use — reading the 116,642 individual images directly from a
+      mounted Drive would be too slow for training. Originally implemented
+      with `gdown` against the public share link; switched to the
+      authenticated Drive API (`google.colab.auth` + `googleapiclient`)
+      after hitting Google's public-link download quota ("Too many users
+      have viewed or downloaded this file recently") from repeated testing
+      — the authenticated approach downloads by file ID as the owner and
+      isn't subject to that quota. Implemented in
       `notebooks/01_dataset_download_colab.ipynb`. **Verified working**:
       run in Colab, output matched the local audit exactly (200 classes,
       116,642 images).
