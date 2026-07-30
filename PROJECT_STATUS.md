@@ -63,6 +63,12 @@ step-by-step plan)
   padding visible, augmentation visible, class names matched their images
 - Stage 4 fully complete and verified
 - Work for stage 4 is in `notebooks/03_preprocessing.ipynb`
+- Stage 5.1-5.4 implemented together in `notebooks/04_baseline_model.ipynb`:
+  MLflow tracking (persisted to Drive), baseline 3-conv-block CNN
+  sanity-checked on a 3-class subset, full training run (8 epochs, logged
+  to MLflow), and evaluation (confusion matrix, per-class accuracy,
+  accuracy-vs-training-size correlation, most-confused class pairs). Not
+  yet run — waiting on the user to execute it in Colab and share results
 
 ## Stage 3 data audit summary
 
@@ -115,14 +121,16 @@ limitation if asked during defense.
 
 ## Current task
 
-Stage 5.1 — set up MLflow tracking
+Waiting for the user to run `notebooks/04_baseline_model.ipynb` in Colab
+and share the results (validation accuracy, confusion matrix, per-class
+stats) so we can discuss them before deciding what to try in stage 6
 
 ## Next
 
-- 5.1 Set up MLflow tracking
-- 5.2 Baseline model, prove the training loop works end-to-end
-- 5.3 Train baseline on full dataset
-- 5.4 Evaluate on validation set, confusion matrix / per-class accuracy
+- Run stage 5 notebook, discuss results
+- 6.1 Try deliberate improvements based on what stage 5 shows
+- 6.2 Compare experiments, pick best model
+- 6.3 Final test-set evaluation
 
 ## Known problems / blockers
 

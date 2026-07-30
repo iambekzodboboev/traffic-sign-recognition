@@ -149,16 +149,31 @@ Git/GitHub set up, Python environment installed, dataset present locally.
 
 ## 5. Baseline model and experiments
 
-- [ ] 5.1 Set up MLflow tracking (and decide where the tracking data lives,
-      given the Colab/local split).
-- [ ] 5.2 Build a simple baseline CNN; first prove the training loop works
+- [x] 5.1 Set up MLflow tracking (and decide where the tracking data lives,
+      given the Colab/local split). **Implemented**: mount Google Drive in
+      Colab, point MLflow's tracking URI at a Drive folder (not
+      `/content`, which is wiped every session) so runs persist across
+      sessions.
+- [x] 5.2 Build a simple baseline CNN; first prove the training loop works
       end-to-end on a tiny subset (e.g. 2-3 classes, a couple epochs).
-- [ ] 5.3 Train the baseline on the full dataset for a small number of
+      **Implemented**: 3-conv-block CNN with batch norm, sanity-checked on
+      a 3-class subset before the full run.
+- [x] 5.3 Train the baseline on the full dataset for a small number of
       epochs; confirm it clearly beats random guessing (~0.5% for 200
-      classes) and log it in MLflow.
-- [ ] 5.4 Evaluate on the validation set; look at a confusion matrix /
+      classes) and log it in MLflow. **Implemented**: 8 epochs, Adam,
+      logged to MLflow (params + per-epoch metrics + model artifact).
+      Pending: actually running it in Colab to get real numbers.
+- [x] 5.4 Evaluate on the validation set; look at a confusion matrix /
       per-class accuracy to see where it struggles (expect the smaller
-      classes to be weakest).
+      classes to be weakest). **Implemented**: confusion matrix heatmap,
+      worst/best 15 classes by accuracy, correlation between per-class
+      accuracy and training-set size, top confused class pairs by name.
+      Pending: real results and discussion once run in Colab.
+
+All of 5.1-5.4 implemented together in `notebooks/04_baseline_model.ipynb`
+(self-contained). Not yet run — waiting on the user to execute it in
+Colab and share the resulting numbers/plots to discuss before deciding
+what to try in stage 6.
 
 ## 6. Model selection
 
