@@ -174,13 +174,16 @@ Git/GitHub set up, Python environment installed, dataset present locally.
       per-epoch checkpointing meant the trained model was never lost).
 - [x] 5.4 Evaluate on the validation set; look at a confusion matrix /
       per-class accuracy to see where it struggles (expect the smaller
-      classes to be weakest). **Implemented**: confusion matrix heatmap,
-      worst/best 15 classes by accuracy, correlation between per-class
-      accuracy and training-set size, top confused class pairs by name.
-      Not yet run (notebook crashed at the model-save step, right before
-      this stage, on the same run whose training already succeeded) —
-      pending.
-      Pending: real results and discussion once run in Colab.
+      classes to be weakest). **Done, verified in Colab.** Surprising
+      finding: correlation between per-class accuracy and training-set
+      size was only -0.124 (essentially none) — contrary to the
+      expectation above, **class imbalance is not what's hurting this
+      model.** The confusion pairs tell the real story instead: errors
+      are concentrated in specific, visually/semantically similar sign
+      pairs (mirrored left/right signs, similar "end of restriction"
+      signs, similar informational plate signs) rather than being spread
+      thin across low-data classes. Full breakdown in `PROJECT_STATUS.md`
+      under "Stage 5 baseline results".
 
 All of 5.1-5.4 implemented together in `notebooks/04_baseline_model.ipynb`
 (self-contained). Not yet run — waiting on the user to execute it in

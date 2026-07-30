@@ -63,14 +63,56 @@ step-by-step plan)
   padding visible, augmentation visible, class names matched their images
 - Stage 4 fully complete and verified
 - Work for stage 4 is in `notebooks/03_preprocessing.ipynb`
-- Stage 5.1-5.3 done and verified in Colab: MLflow tracking (persisted to
+- Stage 5.1-5.4 done and verified in Colab: MLflow tracking (persisted to
   Drive), baseline 3-conv-block CNN sanity-checked on a 3-class subset,
-  full 15-epoch training run. Final: train_acc=0.589, val_acc=0.878 —
-  steady improvement every epoch, no plateau, no overfitting signs
-- Stage 5.4 (evaluation: confusion matrix, per-class accuracy,
-  accuracy-vs-training-size correlation, most-confused class pairs) is
-  implemented but not yet run — the notebook crashed at the model-save
-  step (now fixed) right before reaching it
+  full 15-epoch training run (final val_acc=0.878), and full evaluation
+  (confusion matrix, per-class accuracy, correlation, confused pairs)
+- Trained model confirmed saved permanently in MLflow (Drive-backed),
+  independent of notebook/session state
+- Work for stage 5 is in `notebooks/04_baseline_model.ipynb`
+
+## Stage 5 baseline results
+
+**Overall**: final validation accuracy **87.84%** (200 classes, random
+baseline 0.5%). Climbed steadily every single epoch (40.5% -> 87.8% over
+15 epochs), no plateau, no overfitting signs (val accuracy stayed at or
+above train accuracy throughout, expected given train-only augmentation
+and dropout being active only during training).
+
+**Surprising finding — imbalance is not the bottleneck**: correlation
+between per-class validation accuracy and training-set size was only
+**-0.124** (essentially none). This contradicts the expectation from
+stage 3 that smaller classes would be the weakest. The `WeightedRandomSampler`
+already in place is handling the imbalance adequately; it is not what's
+limiting this baseline.
+
+**What actually explains the weak classes — specific, systematic
+confusions between visually/semantically similar sign pairs**, not
+scattered random error:
+- `44 (Minor road, right)` <-> `45 (Minor road, left)` — 92x. Mirror-image
+  confusion.
+- `184 (Coverage area)` is the single worst class (17.9% accuracy) — split
+  almost entirely between two confusions: `->183 (Distance to the object)`
+  (52x) and `->193 (Limitation of parking duration)` (46x), accounting for
+  98 of its 134 validation images.
+- `189 (Validity period)` `->192 (Paid services)` (51x) — another
+  informational/text-plate sign confused with a similar one (recall `189`
+  is literally a time-range text plate, per the 3.4 visual audit).
+- `190 (Method of parking)` `->196 (Dangerous roadside)` — **122x, the
+  single biggest confusion in the whole matrix.** Also explains an
+  otherwise-puzzling bright spot near the diagonal in the confusion matrix
+  heatmap: class 196 is only 6 columns from 190, so this large off-diagonal
+  error visually blended with the diagonal at 200x200 resolution — not a
+  data leak or artifact.
+- `42 (End of overtaking-by-lorries restriction)` `->32 (End of all
+  restrictions)` (85x) — semantically related "end of restriction" signs.
+
+**Takeaway for stage 6**: prioritize things that improve the model's
+ability to discriminate fine visual detail (more capacity, or a pretrained
+backbone) over further imbalance-focused changes. Worth a quick visual
+sanity-check on the `184` confusions specifically, to rule out an actual
+labeling issue rather than genuine visual similarity, before assuming it's
+purely a model-capacity problem.
 
 ## Stage 3 data audit summary
 
@@ -123,14 +165,14 @@ limitation if asked during defense.
 
 ## Current task
 
-Waiting for the user to run `notebooks/04_baseline_model.ipynb` in Colab
-and share the results (validation accuracy, confusion matrix, per-class
-stats) so we can discuss them before deciding what to try in stage 6
+Stage 6.1 — decide what to try first, informed by stage 5's finding that
+confusability between specific sign pairs (not class imbalance) is the
+main weakness
 
 ## Next
 
-- Run stage 5 notebook, discuss results
-- 6.1 Try deliberate improvements based on what stage 5 shows
+- 6.1 Try deliberate improvements (e.g. more model capacity/pretrained
+  backbone; possibly a visual check on the class-184 confusions first)
 - 6.2 Compare experiments, pick best model
 - 6.3 Final test-set evaluation
 
