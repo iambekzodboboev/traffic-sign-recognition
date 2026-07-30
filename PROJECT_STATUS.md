@@ -95,7 +95,14 @@ Stage 6 — Model selection (see `ROADMAP.md` for full step-by-step plan)
   diagnosed the cause as ResNet18's heavier GPU compute running in full
   FP32 rather than data loading. Added mixed precision (AMP) to the
   training loop to fix this without changing what's being compared;
-  scaler state is now checkpointed too. **Not yet run** — waiting
+  scaler state is now checkpointed too. **Revised again**: the real pain
+  point was reopening the notebook for any new step forcing a full
+  retrain, since a finished run's checkpoint was deleted and there was no
+  fast path back to it. Fixed by checking MLflow for an already-completed
+  `resnet18_transfer_15ep` run before training — if found, loads the
+  trained model directly instead of retraining. Training only happens
+  once; the dataset download/unzip still repeats each session (Colab
+  wipes local disk) but that's minutes, not hours. **Not yet run** — waiting
   on the user to execute it in Colab.
 
 ## Stage 5 baseline results

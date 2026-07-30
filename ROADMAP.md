@@ -229,7 +229,19 @@ what to try in stage 6.
       be ResNet18's heavier GPU compute running in full FP32 rather than
       using the T4's tensor cores. This only changes training speed, not
       what's being compared; scaler state is checkpointed too so
-      disconnect/resume still works correctly. Implemented in
+      disconnect/resume still works correctly. **Revised again** after the
+      user's real pain point turned out to be different from raw speed:
+      every time they reopened the notebook for a new step, it retrained
+      from scratch (Colab wipes local disk each session, and the old code
+      always deleted its checkpoint once a run finished, so a completed
+      model had no fast path back). Fixed by checking MLflow for an
+      already-**completed** run named `resnet18_transfer_15ep` before
+      training anything — if found, the notebook just loads that trained
+      model (`mlflow.pytorch.load_model`) and skips straight to
+      evaluation. Training for real only happens once, the first time it
+      succeeds (or again if that MLflow run is deliberately deleted). The
+      dataset download/unzip step still repeats every session (unavoidable
+      on free Colab) but that's minutes, not hours. Implemented in
       `notebooks/05_transfer_learning.ipynb` (self-contained, same pattern
       as `04_baseline_model.ipynb`, incl. per-epoch Drive checkpointing).
       Includes a direct re-check of the five specific confusions flagged

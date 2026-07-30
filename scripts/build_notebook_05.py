@@ -327,80 +327,111 @@ del tiny_model, tiny_optimizer, tiny_scaler
 if device.type == 'cuda':
     torch.cuda.empty_cache()"""))
 
-cells.append(md("""## Step 6.1d -- Train on the full dataset
+cells.append(md("""## Step 6.1d -- Train on the full dataset (only if not already done)
 
-Same training loop shape as the baseline: 15 epochs (matching the
-baseline's epoch count for a fair comparison), checkpointed to Drive
-every epoch (including the AMP scaler's state, so a resume after a
-disconnect picks up exactly where it left off), resumable after a
-disconnect."""))
+**This is the fix for "why do I have to retrain every time I reopen the
+notebook."** Before training anything, this checks MLflow for an
+already-**completed** run named `resnet18_transfer_15ep`. If one exists
+(you already ran this once, successfully, in an earlier session), it
+just loads that trained model directly -- no training, no waiting.
+Training (15 epochs, matching the baseline's count for a fair
+comparison; checkpointed to Drive every epoch including the AMP scaler's
+state, resumable if Colab disconnects mid-run) only happens the *first*
+time this succeeds, or if you deliberately delete the MLflow run to
+force a fresh one.
+
+Note: the dataset download/unzip step above still runs every session
+regardless (Colab wipes local disk each time, and the evaluation cells
+below need the real images) -- but that's minutes, not hours, and is not
+what was making every re-run expensive."""))
 
 cells.append(code("""NUM_EPOCHS = 15
 LEARNING_RATE = 1e-4
 RUN_NAME = "resnet18_transfer_15ep"
 
-CHECKPOINT_DIR = "/content/drive/MyDrive/traffic_sign_recognition/checkpoints"
-os.makedirs(CHECKPOINT_DIR, exist_ok=True)
-CHECKPOINT_PATH = os.path.join(CHECKPOINT_DIR, f"{RUN_NAME}_checkpoint.pt")
+from mlflow.tracking import MlflowClient
 
-model = build_resnet18(num_classes=200).to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
-scaler = torch.amp.GradScaler(device='cuda', enabled=(device.type == 'cuda'))
-start_epoch = 0
+client = MlflowClient()
+experiment = client.get_experiment_by_name("traffic-sign-baseline")
+existing_runs = client.search_runs(
+    experiment_ids=[experiment.experiment_id],
+    filter_string=f"tags.mlflow.runName = '{RUN_NAME}'",
+    order_by=["attributes.start_time DESC"],
+)
+finished_run = next((r for r in existing_runs if r.info.status == "FINISHED"), None)
 
-if os.path.exists(CHECKPOINT_PATH):
-    checkpoint = torch.load(CHECKPOINT_PATH, map_location=device)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    if 'scaler_state_dict' in checkpoint:
-        scaler.load_state_dict(checkpoint['scaler_state_dict'])
-    else:
-        print("Checkpoint predates the AMP scaler (older run) -- continuing with a fresh scaler, safe to do.")
-    start_epoch = checkpoint['epoch'] + 1
-    print(f"Found checkpoint: resuming from epoch {start_epoch}/{NUM_EPOCHS} "
-          f"(last val_acc={checkpoint['val_acc']:.3f})")
+if finished_run is not None:
+    run_id = finished_run.info.run_id
+    print(f"Found an already-completed run '{RUN_NAME}' (run_id={run_id}) -- loading it instead of training again.")
+    model = mlflow.pytorch.load_model(f"runs:/{run_id}/model").to(device)
+    logged_val_acc = finished_run.data.metrics.get("val_acc")
+    if logged_val_acc is not None:
+        print(f"Its last logged val_acc was {logged_val_acc:.4f}.")
 else:
-    print("No checkpoint found, starting fresh from epoch 0.")
+    print(f"No completed '{RUN_NAME}' run found -- training now (this only needs to happen once).")
 
-with mlflow.start_run(run_name=RUN_NAME) as run:
-    mlflow.log_params({
-        "model": "ResNet18 (ImageNet-pretrained, fully fine-tuned)",
-        "num_epochs": NUM_EPOCHS,
-        "learning_rate": LEARNING_RATE,
-        "batch_size": BATCH_SIZE,
-        "target_size": TARGET_SIZE,
-        "optimizer": "Adam",
-        "mixed_precision": device.type == 'cuda',
-    })
+    CHECKPOINT_DIR = "/content/drive/MyDrive/traffic_sign_recognition/checkpoints"
+    os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+    CHECKPOINT_PATH = os.path.join(CHECKPOINT_DIR, f"{RUN_NAME}_checkpoint.pt")
 
-    for epoch in range(start_epoch, NUM_EPOCHS):
-        train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, device, scaler)
-        val_loss, val_acc, _, _ = evaluate(model, val_loader, criterion, device)
-        print(f"Epoch {epoch + 1}/{NUM_EPOCHS}: train_loss={train_loss:.3f} train_acc={train_acc:.3f} "
-              f"val_loss={val_loss:.3f} val_acc={val_acc:.3f}")
-        mlflow.log_metrics({
-            "train_loss": train_loss, "train_acc": train_acc,
-            "val_loss": val_loss, "val_acc": val_acc,
-        }, step=epoch)
-
-        torch.save({
-            'epoch': epoch,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'scaler_state_dict': scaler.state_dict(),
-            'val_acc': val_acc,
-        }, CHECKPOINT_PATH)
-
-    example_input = torch.randn(1, 3, TARGET_SIZE, TARGET_SIZE)
-    mlflow.pytorch.log_model(
-        model, name="model", input_example=example_input, serialization_format="pickle"
-    )
-    run_id = run.info.run_id
+    model = build_resnet18(num_classes=200).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    scaler = torch.amp.GradScaler(device='cuda', enabled=(device.type == 'cuda'))
+    start_epoch = 0
 
     if os.path.exists(CHECKPOINT_PATH):
-        os.remove(CHECKPOINT_PATH)
+        checkpoint = torch.load(CHECKPOINT_PATH, map_location=device)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        if 'scaler_state_dict' in checkpoint:
+            scaler.load_state_dict(checkpoint['scaler_state_dict'])
+        else:
+            print("Checkpoint predates the AMP scaler (older run) -- continuing with a fresh scaler, safe to do.")
+        start_epoch = checkpoint['epoch'] + 1
+        print(f"Found a partial checkpoint: resuming from epoch {start_epoch}/{NUM_EPOCHS} "
+              f"(last val_acc={checkpoint['val_acc']:.3f})")
+    else:
+        print("No partial checkpoint either, starting fresh from epoch 0.")
 
-print(f"\\nDone. MLflow run id: {run_id}")
+    with mlflow.start_run(run_name=RUN_NAME) as run:
+        mlflow.log_params({
+            "model": "ResNet18 (ImageNet-pretrained, fully fine-tuned)",
+            "num_epochs": NUM_EPOCHS,
+            "learning_rate": LEARNING_RATE,
+            "batch_size": BATCH_SIZE,
+            "target_size": TARGET_SIZE,
+            "optimizer": "Adam",
+            "mixed_precision": device.type == 'cuda',
+        })
+
+        for epoch in range(start_epoch, NUM_EPOCHS):
+            train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, device, scaler)
+            val_loss, val_acc, _, _ = evaluate(model, val_loader, criterion, device)
+            print(f"Epoch {epoch + 1}/{NUM_EPOCHS}: train_loss={train_loss:.3f} train_acc={train_acc:.3f} "
+                  f"val_loss={val_loss:.3f} val_acc={val_acc:.3f}")
+            mlflow.log_metrics({
+                "train_loss": train_loss, "train_acc": train_acc,
+                "val_loss": val_loss, "val_acc": val_acc,
+            }, step=epoch)
+
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'scaler_state_dict': scaler.state_dict(),
+                'val_acc': val_acc,
+            }, CHECKPOINT_PATH)
+
+        example_input = torch.randn(1, 3, TARGET_SIZE, TARGET_SIZE)
+        mlflow.pytorch.log_model(
+            model, name="model", input_example=example_input, serialization_format="pickle"
+        )
+        run_id = run.info.run_id
+
+        if os.path.exists(CHECKPOINT_PATH):
+            os.remove(CHECKPOINT_PATH)
+
+print(f"\\nUsing MLflow run id: {run_id}")
 print("Baseline (stage 5) validation accuracy was 0.8784 -- compare against that.")"""))
 
 cells.append(md("""## Step 6.1e -- Evaluate on validation set: confusion matrix and per-class accuracy
