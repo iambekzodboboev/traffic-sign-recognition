@@ -63,12 +63,14 @@ step-by-step plan)
   padding visible, augmentation visible, class names matched their images
 - Stage 4 fully complete and verified
 - Work for stage 4 is in `notebooks/03_preprocessing.ipynb`
-- Stage 5.1-5.4 implemented together in `notebooks/04_baseline_model.ipynb`:
-  MLflow tracking (persisted to Drive), baseline 3-conv-block CNN
-  sanity-checked on a 3-class subset, full training run (8 epochs, logged
-  to MLflow), and evaluation (confusion matrix, per-class accuracy,
-  accuracy-vs-training-size correlation, most-confused class pairs). Not
-  yet run — waiting on the user to execute it in Colab and share results
+- Stage 5.1-5.3 done and verified in Colab: MLflow tracking (persisted to
+  Drive), baseline 3-conv-block CNN sanity-checked on a 3-class subset,
+  full 15-epoch training run. Final: train_acc=0.589, val_acc=0.878 —
+  steady improvement every epoch, no plateau, no overfitting signs
+- Stage 5.4 (evaluation: confusion matrix, per-class accuracy,
+  accuracy-vs-training-size correlation, most-confused class pairs) is
+  implemented but not yet run — the notebook crashed at the model-save
+  step (now fixed) right before reaching it
 
 ## Stage 3 data audit summary
 

@@ -160,14 +160,26 @@ Git/GitHub set up, Python environment installed, dataset present locally.
       a 3-class subset before the full run.
 - [x] 5.3 Train the baseline on the full dataset for a small number of
       epochs; confirm it clearly beats random guessing (~0.5% for 200
-      classes) and log it in MLflow. **Implemented**: 8 epochs, Adam,
-      logged to MLflow (params + per-epoch metrics + model artifact).
-      Pending: actually running it in Colab to get real numbers.
+      classes) and log it in MLflow. **Done, verified in Colab**: 15
+      epochs, Adam. Final epoch: train_loss=1.367, train_acc=0.589,
+      val_loss=0.484, val_acc=0.878. Val accuracy climbed steadily every
+      single epoch (40.5% -> 87.8%), no plateau, clearly and hugely above
+      the 0.5% random-guess baseline. Val > train throughout, expected
+      given train-only augmentation and dropout (not overfitting — no
+      sign of val trailing off). Hit and fixed two real bugs along the
+      way: a missing `import os` in the MLflow setup cell, and
+      `mlflow.pytorch.log_model` needing an explicit `input_example` for
+      this MLflow version (training itself succeeded first try; only the
+      final save step failed and was recovered without retraining, since
+      per-epoch checkpointing meant the trained model was never lost).
 - [x] 5.4 Evaluate on the validation set; look at a confusion matrix /
       per-class accuracy to see where it struggles (expect the smaller
       classes to be weakest). **Implemented**: confusion matrix heatmap,
       worst/best 15 classes by accuracy, correlation between per-class
       accuracy and training-set size, top confused class pairs by name.
+      Not yet run (notebook crashed at the model-save step, right before
+      this stage, on the same run whose training already succeeded) —
+      pending.
       Pending: real results and discussion once run in Colab.
 
 All of 5.1-5.4 implemented together in `notebooks/04_baseline_model.ipynb`
