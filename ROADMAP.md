@@ -272,10 +272,30 @@ evaluated on Kaggle Notebooks, 99.37% held-out test accuracy.
 
 ## 7. Inference / demo workflow
 
-- [ ] 7.1 Export the trained model and the class-name mapping as small
-      artifact files.
-- [ ] 7.2 Write a small local inference script: image in, predicted sign name
-      + confidence out. Test manually on a few sample photos.
+- [x] 7.1 Export the trained model and the class-name mapping as small
+      artifact files. **Done**: downloaded the trained weights
+      (`resnet18_transfer_15ep.pt`, ~45MB state dict) directly from the
+      live Kaggle session's `/kaggle/working` output (via `IPython.display.FileLink`,
+      no need to wait for a full "Save Version" commit) and placed it at
+      `models/resnet18_transfer_15ep.pt` locally. Gitignored (`*.pt`,
+      same pattern as the dataset zip) — it's a build artifact, not
+      source, so it isn't committed; if it's ever missing, redownload it
+      from that Kaggle notebook's Output, or from MLflow run
+      `21082892cf2d4295851e8c1a96580863`. The class-name mapping
+      (`metadata/class_names.csv`) already existed in the repo from stage
+      3.5, no re-export needed.
+- [x] 7.2 Write a small local inference script: image in, predicted sign name
+      + confidence out. Test manually on a few sample photos. **Done**:
+      `scripts/predict_sign.py`, runs entirely on CPU (no GPU, dataset, or
+      network needed) — loads the ResNet18 architecture, the local
+      `models/resnet18_transfer_15ep.pt` weights, and
+      `metadata/class_names.csv`; applies the exact same letterbox-resize
+      + ImageNet-normalize preprocessing used in training/eval; prints
+      top-3 predictions with confidence. **Verified**: tested on 6 sample
+      photos pulled from the local dataset zip (classes 0, 14, 44, 45,
+      184, 190 — including the previously-confused mirror pair 44/45 and
+      class 184's old confusions) — all 6 predicted correctly at
+      99.99-100% confidence.
 - [ ] 7.3 Revisit and decide: Telegram bot or web app for the demo.
 - [ ] 7.4 Build and test a minimal version of the chosen interface end-to-end
       with a real photo.

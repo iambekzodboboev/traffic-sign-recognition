@@ -110,6 +110,22 @@ for full step-by-step plan)
   accuracy — no overfitting from the iterative comparison process. Test
   macro-F1 0.9937; worst test class 170 ("Phone") at 0.8846.
 - **Stage 6 (model selection) fully complete.**
+- Stage 7.1 done: trained weights downloaded from the live Kaggle session
+  (`resnet18_transfer_15ep.pt`, ~45MB state dict, via
+  `IPython.display.FileLink`) and placed at
+  `models/resnet18_transfer_15ep.pt` locally. Gitignored like the dataset
+  zip (build artifact, not source) — if ever missing, redownload from
+  that Kaggle notebook's Output or MLflow run
+  `21082892cf2d4295851e8c1a96580863`. Class-name mapping reused as-is
+  from `metadata/class_names.csv` (stage 3.5), no re-export needed.
+- Stage 7.2 done: `scripts/predict_sign.py`, a local CPU-only inference
+  script (image in, predicted sign name + confidence out) — no GPU,
+  dataset, or network access needed. Applies the exact same letterbox +
+  ImageNet-normalize preprocessing as training/eval. **Verified working**
+  on 6 sample photos pulled from the local dataset zip (classes 0, 14,
+  44, 45, 184, 190, including the previously-confused 44/45 mirror pair
+  and 184's old confusions) — all 6 predicted correctly at 99.99-100%
+  confidence.
 
 ## Stage 6 model selection results
 
@@ -252,13 +268,11 @@ limitation if asked during defense.
 
 ## Current task
 
-Stage 7.1 — export the trained ResNet18 model and the class-name mapping
-as small artifact files, to prepare for a local inference script
+Stage 7.3 — decide: Telegram bot or web app for the demo (deliberately
+left open until modeling was done; revisit now)
 
 ## Next
 
-- 7.1 Export trained model + class-name mapping as artifact files
-- 7.2 Local inference script: image in, predicted sign name + confidence out
 - 7.3 Revisit and decide: Telegram bot or web app for the demo
 - 7.4 Build and test a minimal version of the chosen interface end-to-end
 
