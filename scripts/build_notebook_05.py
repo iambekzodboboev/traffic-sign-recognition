@@ -17,14 +17,17 @@ cells = []
 
 cells.append(md("""# Transfer learning experiment (ResNet18 backbone)
 
-Roadmap stage 6.1. Self-contained like the previous notebooks -- this
-re-downloads the dataset and rebuilds the *exact same* preprocessing
-pipeline as `04_baseline_model.ipynb` (same split, same 64x64 letterbox
-resize, same normalization, same augmentation). The **only thing that
-changes in this experiment is the model itself**: a pretrained ResNet18
-instead of the baseline's 3-conv-block CNN trained from scratch. Keeping
-everything else identical is what makes the comparison to the stage 5
-baseline (87.84% val accuracy) meaningful.
+Roadmap stage 6.1. Runs on **Kaggle Notebooks** rather than Colab --
+Colab's free-tier GPU quota was exhausted (from earlier long training
+attempts, before mixed precision was added), and this exact dataset is
+natively hosted on Kaggle already, with its own separate GPU quota. Still
+self-contained like the previous notebooks: rebuilds the *exact same*
+preprocessing pipeline as `04_baseline_model.ipynb` (same split, same
+64x64 letterbox resize, same normalization, same augmentation). The
+**only thing that changes in this experiment is the model itself**: a
+pretrained ResNet18 instead of the baseline's 3-conv-block CNN trained
+from scratch. Keeping everything else identical is what makes the
+comparison to the stage 5 baseline (87.84% val accuracy) meaningful.
 
 **Why this experiment**: stage 5.4 found that class imbalance was *not*
 the bottleneck (correlation between per-class accuracy and training-set
@@ -37,55 +40,39 @@ from scratch on this dataset alone -- the question this experiment
 answers is whether that extra discriminative power actually reduces
 those specific confusions.
 
-**Before running**: needs a GPU (Runtime > Change runtime type > T4 GPU
-for *this* notebook specifically, even if set elsewhere). Training is
-checkpointed to Drive every epoch, same as the baseline notebook, so a
-disconnect just means re-running the notebook (Runtime > Run all) to
-resume from the last completed epoch."""))
+**Before running, three one-time settings on Kaggle**:
+1. **Add the dataset**: click **+ Add Input** (top right) and search for
+   `mikhailkosov/traffic-signs-in-post-soviet-states-200-classes` -- this
+   mounts it read-only under `/kaggle/input/`, no download step needed
+   (unlike Colab, which had to pull it from Drive every session).
+2. **Turn on internet**: right sidebar **Settings > Internet > On**
+   (needed to `pip install mlflow` and pull `metadata/*.csv` from
+   GitHub).
+3. **Turn on a GPU**: right sidebar **Settings > Accelerator > GPU T4 x2**
+   (or whichever GPU Kaggle offers).
 
-cells.append(md("### Setup: download the dataset (from Google Drive, authenticated)"))
+**For the real training run**, use **Save Version > Save & Run All
+(Commit)** rather than running cells interactively. This executes the
+whole notebook on Kaggle's servers in the background, so you can close
+the tab -- no risk of losing progress to a ~90-minute idle disconnect
+like Colab. The trained model and printed results end up attached to
+that version once it finishes; check the **Logs** tab to follow
+progress while it runs."""))
 
-cells.append(code("""from google.colab import auth
-auth.authenticate_user()
+cells.append(md("### Setup: locate the dataset (mounted read-only via Kaggle's \"+ Add Input\")"))
 
-import io
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
+cells.append(code("""from pathlib import Path
 
-FILE_ID = "1Mi0IleRucNmwnQ4g_ZEWOyBFFv4mO9ba"
-ZIP_PATH = "/content/traffic_sign_dataset.zip"
-
-drive_service = build('drive', 'v3')
-request = drive_service.files().get_media(fileId=FILE_ID)
-
-with io.FileIO(ZIP_PATH, 'wb') as fh:
-    downloader = MediaIoBaseDownload(fh, request, chunksize=200 * 1024 * 1024)
-    done = False
-    while not done:
-        status, done = downloader.next_chunk()
-        print(f"Download progress: {int(status.progress() * 100)}%")
-
-print("Download complete.")"""))
-
-cells.append(code("""import os
-
-EXPECTED_SIZE = 14_945_416_206
-assert os.path.exists(ZIP_PATH), "Download failed: no file was written at all."
-actual_size = os.path.getsize(ZIP_PATH)
-print(f"Downloaded file size: {actual_size:,} bytes ({actual_size / 1e9:.2f} GB)")
-assert actual_size > 1_000_000_000, "Downloaded file is far too small to be the real dataset."
-print("Size check passed.")"""))
-
-cells.append(code("""!rm -rf /content/dataset
-!mkdir -p /content/dataset
-!unzip -q "$ZIP_PATH" -d /content/dataset
-!rm "$ZIP_PATH"
-
-from pathlib import Path
-data_dir = Path('/content/dataset/Data')
-assert data_dir.is_dir(), "Unzip did not produce /content/dataset/Data as expected."
+KAGGLE_INPUT_ROOT = Path("/kaggle/input")
+candidates = [p for p in KAGGLE_INPUT_ROOT.rglob("Data") if p.is_dir()]
+assert candidates, (
+    "Could not find a 'Data' folder under /kaggle/input -- make sure you've "
+    "added the dataset via '+ Add Input' (top right) and searched for "
+    "'mikhailkosov/traffic-signs-in-post-soviet-states-200-classes'."
+)
+data_dir = candidates[0]
 class_folders = sorted(data_dir.iterdir(), key=lambda p: int(p.name))
-print(f"Unzip done. Found {len(class_folders)} class folders under Data/.")"""))
+print(f"Found dataset at {data_dir}. {len(class_folders)} class folders under Data/.")"""))
 
 cells.append(md("""### Setup: load the split manifest, class names, and rebuild the preprocessing pipeline
 
@@ -178,17 +165,19 @@ print(f"Train: {len(train_dataset)}, Val: {len(val_dataset)}, Test: {len(test_da
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using device: {device}")
 if device.type == 'cpu':
-    print("WARNING: no GPU detected. Set Runtime > Change runtime type > T4 GPU "
-          "for this notebook, then re-run from the top.")"""))
+    print("WARNING: no GPU detected. Set right sidebar Settings > Accelerator > "
+          "GPU T4 x2 for this notebook, then re-run from the top.")"""))
 
 cells.append(md("""## Step 6.1a -- MLflow tracking setup
 
-Same Drive-backed tracking URI and experiment name as the baseline run,
-so both runs show up side by side in MLflow for direct comparison."""))
+Tracking data is stored under `/kaggle/working/mlruns` -- Kaggle's
+writable output directory, which persists for the current session and
+becomes part of this notebook version's Output once committed. (Colab
+used a Drive-backed path for the same purpose; Kaggle's equivalent
+persistent, writable location is `/kaggle/working`.) Same experiment
+name as the baseline run, for direct comparison."""))
 
 cells.append(code("""import os
-from google.colab import drive
-drive.mount('/content/drive')
 
 !pip install -q mlflow
 
@@ -197,7 +186,7 @@ import mlflow.pytorch
 
 os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
 
-MLFLOW_DIR = "/content/drive/MyDrive/traffic_sign_recognition/mlruns"
+MLFLOW_DIR = "/kaggle/working/mlruns"
 os.makedirs(MLFLOW_DIR, exist_ok=True)
 mlflow.set_tracking_uri(f"file:{MLFLOW_DIR}")
 mlflow.set_experiment("traffic-sign-baseline")
@@ -230,13 +219,14 @@ same 15 epochs) took 2-3 hours in Colab, vs. the baseline's 15-50
 minutes. The data pipeline is identical between the two notebooks, so
 that slowdown isn't from data loading -- it's ResNet18 (11.7M params, 18
 conv layers) doing far more GPU math per image than the baseline's tiny
-3-conv-block CNN, running in full FP32 and not using the T4's tensor
+3-conv-block CNN, running in full FP32 and not using the GPU's tensor
 cores. We use **automatic mixed precision (AMP)** below to fix that: it
-runs most of the forward pass in float16 (T4 tensor cores are built for
-this) while keeping a float32 copy of weights for stable updates, via
-`torch.amp.autocast` + `GradScaler`. This changes only *how fast* the
-same computation runs, not what's being compared -- results should be
-numerically the same as full precision within normal training noise."""))
+runs most of the forward pass in float16 (Kaggle's T4s have tensor cores
+built for this too) while keeping a float32 copy of weights for stable
+updates, via `torch.amp.autocast` + `GradScaler`. This changes only *how
+fast* the same computation runs, not what's being compared -- results
+should be numerically the same as full precision within normal training
+noise."""))
 
 cells.append(code("""import torch.nn as nn
 import torchvision.models as models
@@ -335,15 +325,16 @@ already-**completed** run named `resnet18_transfer_15ep`. If one exists
 (you already ran this once, successfully, in an earlier session), it
 just loads that trained model directly -- no training, no waiting.
 Training (15 epochs, matching the baseline's count for a fair
-comparison; checkpointed to Drive every epoch including the AMP scaler's
-state, resumable if Colab disconnects mid-run) only happens the *first*
-time this succeeds, or if you deliberately delete the MLflow run to
-force a fresh one.
+comparison; checkpointed to `/kaggle/working` every epoch including the
+AMP scaler's state, resumable if the session is interrupted mid-run)
+only happens the *first* time this succeeds, or if you deliberately
+delete the MLflow run to force a fresh one.
 
-Note: the dataset download/unzip step above still runs every session
-regardless (Colab wipes local disk each time, and the evaluation cells
-below need the real images) -- but that's minutes, not hours, and is not
-what was making every re-run expensive."""))
+Note: the dataset is mounted instantly via Kaggle's Input feature (no
+download/unzip step at all, unlike Colab), so the only real time cost
+left is the training itself. Using **Save Version > Save & Run All
+(Commit)** for this run means it executes server-side and isn't tied to
+keeping the browser tab open."""))
 
 cells.append(code("""NUM_EPOCHS = 15
 LEARNING_RATE = 1e-4
@@ -370,7 +361,7 @@ if finished_run is not None:
 else:
     print(f"No completed '{RUN_NAME}' run found -- training now (this only needs to happen once).")
 
-    CHECKPOINT_DIR = "/content/drive/MyDrive/traffic_sign_recognition/checkpoints"
+    CHECKPOINT_DIR = "/kaggle/working/checkpoints"
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
     CHECKPOINT_PATH = os.path.join(CHECKPOINT_DIR, f"{RUN_NAME}_checkpoint.pt")
 
@@ -430,6 +421,11 @@ else:
 
         if os.path.exists(CHECKPOINT_PATH):
             os.remove(CHECKPOINT_PATH)
+
+    # Also save the plain state dict directly under /kaggle/working, so the
+    # trained weights show up in this notebook version's Output tab and are
+    # downloadable/reusable even without going through MLflow.
+    torch.save(model.state_dict(), "/kaggle/working/resnet18_transfer_15ep.pt")
 
 print(f"\\nUsing MLflow run id: {run_id}")
 print("Baseline (stage 5) validation accuracy was 0.8784 -- compare against that.")"""))
@@ -502,9 +498,9 @@ print(f"\\nOverall validation accuracy: this model={val_acc:.4f}  baseline=0.878
 
 cells.append(md("""### Result
 
-Not yet run -- waiting on the user to execute this in Colab and share
-the resulting numbers before deciding stage 6.2 (compare experiments,
-pick the best model)."""))
+Not yet run -- waiting on the user to execute this on Kaggle (Save
+Version > Save & Run All) and share the resulting numbers before
+deciding stage 6.2 (compare experiments, pick the best model)."""))
 
 nb = {
     "cells": cells,

@@ -239,16 +239,28 @@ what to try in stage 6.
       training anything — if found, the notebook just loads that trained
       model (`mlflow.pytorch.load_model`) and skips straight to
       evaluation. Training for real only happens once, the first time it
-      succeeds (or again if that MLflow run is deliberately deleted). The
-      dataset download/unzip step still repeats every session (unavoidable
-      on free Colab) but that's minutes, not hours. Implemented in
-      `notebooks/05_transfer_learning.ipynb` (self-contained, same pattern
-      as `04_baseline_model.ipynb`, incl. per-epoch Drive checkpointing).
+      succeeds (or again if that MLflow run is deliberately deleted).
       Includes a direct re-check of the five specific confusions flagged
       in stage 5 (e.g. 190->196, 184->183/193) against this model's
       confusion matrix, since that's the actual question this experiment
-      is meant to answer. **Not yet run** — waiting on the user to execute
-      it in Colab and share the results.
+      is meant to answer.
+      **Moved to Kaggle Notebooks**: Colab's free-tier GPU quota ran out
+      (from the earlier long pre-AMP training attempts), and this exact
+      dataset is natively hosted on Kaggle with a separate GPU quota, so
+      the notebook was adapted rather than waiting Colab out. Changes:
+      dataset is mounted via Kaggle's "+ Add Input" (no download/unzip —
+      Kaggle's version of stage 0.2's Drive-download step is unnecessary
+      here), MLflow tracking and checkpoints moved from Drive to
+      `/kaggle/working` (Kaggle's writable, session-persistent output
+      directory), and the model's state dict is also saved directly to
+      `/kaggle/working` so it's downloadable from the Output tab
+      independent of MLflow. Real run should use **Save Version > Save &
+      Run All (Commit)**, which executes server-side and isn't tied to
+      keeping a browser tab open (removing the ~90-min Colab disconnect
+      risk entirely for this notebook). Implemented in
+      `notebooks/05_transfer_learning.ipynb` (still self-contained, same
+      pattern as `04_baseline_model.ipynb`). **Not yet run** — waiting on
+      the user to execute it on Kaggle and share the results.
 - [ ] 6.2 Compare runs and pick the best model using validation metrics
       (overall accuracy plus per-class balance, not accuracy alone).
 - [ ] 6.3 Run the chosen model once on the held-out test set for the final,

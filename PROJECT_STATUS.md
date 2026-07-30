@@ -101,9 +101,16 @@ Stage 6 — Model selection (see `ROADMAP.md` for full step-by-step plan)
   fast path back to it. Fixed by checking MLflow for an already-completed
   `resnet18_transfer_15ep` run before training — if found, loads the
   trained model directly instead of retraining. Training only happens
-  once; the dataset download/unzip still repeats each session (Colab
-  wipes local disk) but that's minutes, not hours. **Not yet run** — waiting
-  on the user to execute it in Colab.
+  once. **Moved to Kaggle Notebooks**: Colab's free-tier GPU quota ran
+  out (from the earlier long pre-AMP attempts); this dataset is natively
+  hosted on Kaggle with a separate quota, so the notebook was adapted
+  instead of waiting Colab out — dataset now mounts via Kaggle's
+  "+ Add Input" (no download/unzip needed at all), MLflow tracking and
+  checkpoints moved from Drive to `/kaggle/working`, and the trained
+  model is also saved directly there as a plain file for easy reuse.
+  Real run should use Kaggle's "Save Version > Save & Run All", which
+  runs server-side (no tab-open requirement, unlike Colab). **Not yet
+  run** — waiting on the user to execute it on Kaggle.
 
 ## Stage 5 baseline results
 
@@ -200,14 +207,18 @@ limitation if asked during defense.
 ## Current task
 
 Stage 6.1 — run `notebooks/05_transfer_learning.ipynb` (ResNet18 transfer
-learning experiment) in Colab and share the results
+learning experiment) on Kaggle Notebooks (moved from Colab due to
+exhausted free-tier GPU quota) and share the results
 
 ## Next
 
-- 6.1 Run the transfer-learning notebook, review results together
+- 6.1 Run the transfer-learning notebook on Kaggle, review results together
 - 6.2 Compare experiments, pick best model
 - 6.3 Final test-set evaluation
 
 ## Known problems / blockers
 
-- None
+- Colab's free-tier GPU quota is currently exhausted (from earlier long
+  pre-mixed-precision training attempts) — stage 6.1 moved to Kaggle
+  Notebooks to work around it; may replenish later if Colab is needed
+  again for a future stage.
