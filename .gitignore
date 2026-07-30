@@ -4,6 +4,7 @@ AGENTS.md
 
 # Credentials
 kaggle.json
+.env
 
 # Python
 __pycache__/
