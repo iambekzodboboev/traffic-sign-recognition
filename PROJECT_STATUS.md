@@ -89,7 +89,13 @@ Stage 6 — Model selection (see `ROADMAP.md` for full step-by-step plan)
   pipeline, split, batch size, and 15 epochs as the baseline — only the
   model changes, for a clean comparison. Learning rate lowered to 1e-4 for
   fine-tuning. Ends with a direct re-check of the five confusions flagged
-  in stage 5 against the new confusion matrix. **Not yet run** — waiting
+  in stage 5 against the new confusion matrix. **Revised**: the user
+  reported the first version took 2-3 hours in Colab (vs. baseline's
+  15-50 min); since the data pipeline is identical to the baseline's,
+  diagnosed the cause as ResNet18's heavier GPU compute running in full
+  FP32 rather than data loading. Added mixed precision (AMP) to the
+  training loop to fix this without changing what's being compared;
+  scaler state is now checkpointed too. **Not yet run** — waiting
   on the user to execute it in Colab.
 
 ## Stage 5 baseline results

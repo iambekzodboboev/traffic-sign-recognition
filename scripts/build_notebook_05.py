@@ -223,7 +223,20 @@ as the baseline so this stays a clean single-variable comparison
 224x224 images, so its deeper layers see a much smaller feature map here
 (64x64 -> 2x2 after its 32x total downsampling) than they were trained
 on. If this experiment doesn't help much, a natural follow-up is
-re-running it with a larger input size as its own separate experiment."""))
+re-running it with a larger input size as its own separate experiment.
+
+**Speed note**: an earlier version of this notebook (same data pipeline,
+same 15 epochs) took 2-3 hours in Colab, vs. the baseline's 15-50
+minutes. The data pipeline is identical between the two notebooks, so
+that slowdown isn't from data loading -- it's ResNet18 (11.7M params, 18
+conv layers) doing far more GPU math per image than the baseline's tiny
+3-conv-block CNN, running in full FP32 and not using the T4's tensor
+cores. We use **automatic mixed precision (AMP)** below to fix that: it
+runs most of the forward pass in float16 (T4 tensor cores are built for
+this) while keeping a float32 copy of weights for stable updates, via
+`torch.amp.autocast` + `GradScaler`. This changes only *how fast* the
+same computation runs, not what's being compared -- results should be
+numerically the same as full precision within normal training noise."""))
 
 cells.append(code("""import torch.nn as nn
 import torchvision.models as models
@@ -236,16 +249,19 @@ def build_resnet18(num_classes=200):
     return model
 
 
-def train_one_epoch(model, loader, optimizer, criterion, device):
+def train_one_epoch(model, loader, optimizer, criterion, device, scaler):
     model.train()
     total_loss, total_correct, total_count = 0.0, 0, 0
+    use_amp = device.type == 'cuda'
     for images, labels in loader:
         images, labels = images.to(device), labels.to(device)
         optimizer.zero_grad()
-        outputs = model(images)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
+        with torch.amp.autocast(device_type='cuda', enabled=use_amp):
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
         total_loss += loss.item() * images.size(0)
         total_correct += (outputs.argmax(1) == labels).sum().item()
         total_count += images.size(0)
@@ -257,10 +273,12 @@ def evaluate(model, loader, criterion, device):
     model.eval()
     total_loss, total_correct, total_count = 0.0, 0, 0
     all_preds, all_labels = [], []
+    use_amp = device.type == 'cuda'
     for images, labels in loader:
         images, labels = images.to(device), labels.to(device)
-        outputs = model(images)
-        loss = criterion(outputs, labels)
+        with torch.amp.autocast(device_type='cuda', enabled=use_amp):
+            outputs = model(images)
+            loss = criterion(outputs, labels)
         total_loss += loss.item() * images.size(0)
         preds = outputs.argmax(1)
         total_correct += (preds == labels).sum().item()
@@ -293,10 +311,11 @@ tiny_val_loader = DataLoader(
 
 tiny_model = build_resnet18(num_classes=200).to(device)
 tiny_optimizer = torch.optim.Adam(tiny_model.parameters(), lr=1e-4)
+tiny_scaler = torch.amp.GradScaler(device='cuda', enabled=(device.type == 'cuda'))
 criterion = nn.CrossEntropyLoss()
 
 for epoch in range(3):
-    train_loss, train_acc = train_one_epoch(tiny_model, tiny_train_loader, tiny_optimizer, criterion, device)
+    train_loss, train_acc = train_one_epoch(tiny_model, tiny_train_loader, tiny_optimizer, criterion, device, tiny_scaler)
     val_loss, val_acc, _, _ = evaluate(tiny_model, tiny_val_loader, criterion, device)
     print(f"Epoch {epoch + 1}: train_loss={train_loss:.3f} train_acc={train_acc:.3f} "
           f"val_loss={val_loss:.3f} val_acc={val_acc:.3f}")
@@ -304,7 +323,7 @@ for epoch in range(3):
 print("\\nRandom guessing among these 3 classes would be ~0.33 accuracy.")
 print("A pretrained model should climb well above that within just 1-2 epochs.")
 
-del tiny_model, tiny_optimizer
+del tiny_model, tiny_optimizer, tiny_scaler
 if device.type == 'cuda':
     torch.cuda.empty_cache()"""))
 
@@ -312,7 +331,9 @@ cells.append(md("""## Step 6.1d -- Train on the full dataset
 
 Same training loop shape as the baseline: 15 epochs (matching the
 baseline's epoch count for a fair comparison), checkpointed to Drive
-every epoch, resumable after a disconnect."""))
+every epoch (including the AMP scaler's state, so a resume after a
+disconnect picks up exactly where it left off), resumable after a
+disconnect."""))
 
 cells.append(code("""NUM_EPOCHS = 15
 LEARNING_RATE = 1e-4
@@ -324,12 +345,17 @@ CHECKPOINT_PATH = os.path.join(CHECKPOINT_DIR, f"{RUN_NAME}_checkpoint.pt")
 
 model = build_resnet18(num_classes=200).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+scaler = torch.amp.GradScaler(device='cuda', enabled=(device.type == 'cuda'))
 start_epoch = 0
 
 if os.path.exists(CHECKPOINT_PATH):
     checkpoint = torch.load(CHECKPOINT_PATH, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    if 'scaler_state_dict' in checkpoint:
+        scaler.load_state_dict(checkpoint['scaler_state_dict'])
+    else:
+        print("Checkpoint predates the AMP scaler (older run) -- continuing with a fresh scaler, safe to do.")
     start_epoch = checkpoint['epoch'] + 1
     print(f"Found checkpoint: resuming from epoch {start_epoch}/{NUM_EPOCHS} "
           f"(last val_acc={checkpoint['val_acc']:.3f})")
@@ -344,10 +370,11 @@ with mlflow.start_run(run_name=RUN_NAME) as run:
         "batch_size": BATCH_SIZE,
         "target_size": TARGET_SIZE,
         "optimizer": "Adam",
+        "mixed_precision": device.type == 'cuda',
     })
 
     for epoch in range(start_epoch, NUM_EPOCHS):
-        train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, device)
+        train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, device, scaler)
         val_loss, val_acc, _, _ = evaluate(model, val_loader, criterion, device)
         print(f"Epoch {epoch + 1}/{NUM_EPOCHS}: train_loss={train_loss:.3f} train_acc={train_acc:.3f} "
               f"val_loss={val_loss:.3f} val_acc={val_acc:.3f}")
@@ -360,6 +387,7 @@ with mlflow.start_run(run_name=RUN_NAME) as run:
             'epoch': epoch,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
+            'scaler_state_dict': scaler.state_dict(),
             'val_acc': val_acc,
         }, CHECKPOINT_PATH)
 

@@ -221,7 +221,15 @@ what to try in stage 6.
       15 epochs) kept identical to the baseline so this is a clean
       single-variable comparison. Learning rate lowered to 1e-4 (vs.
       baseline's 1e-3) since fine-tuning pretrained weights needs gentler
-      updates than training from random init. Implemented in
+      updates than training from random init. **Revised after the user
+      reported the first version took 2-3 hours in Colab** (vs. the
+      baseline's 15-50 min) — added automatic mixed precision (AMP,
+      `torch.amp.autocast` + `GradScaler`) to the training loop, since the
+      data pipeline is identical to the baseline's and the slowdown must
+      be ResNet18's heavier GPU compute running in full FP32 rather than
+      using the T4's tensor cores. This only changes training speed, not
+      what's being compared; scaler state is checkpointed too so
+      disconnect/resume still works correctly. Implemented in
       `notebooks/05_transfer_learning.ipynb` (self-contained, same pattern
       as `04_baseline_model.ipynb`, incl. per-epoch Drive checkpointing).
       Includes a direct re-check of the five specific confusions flagged
