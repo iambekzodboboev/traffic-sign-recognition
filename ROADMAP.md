@@ -194,7 +194,24 @@ what to try in stage 6.
 
 - [ ] 6.1 Try a small number of deliberate improvements one at a time
       (augmentation, class weighting, a deeper network or transfer learning
-      backbone), tracking each as its own MLflow run.
+      backbone), tracking each as its own MLflow run. **First experiment
+      chosen: a pretrained ResNet18 backbone (transfer learning), fully
+      fine-tuned**, over a from-scratch deeper CNN — stage 5.4 found the
+      baseline's weakness was specific visual confusability between sign
+      pairs, not lack of raw model size, and a pretrained backbone brings
+      much richer discriminative features than more from-scratch capacity
+      would. Everything else (64x64 letterbox pipeline, split, batch size,
+      15 epochs) kept identical to the baseline so this is a clean
+      single-variable comparison. Learning rate lowered to 1e-4 (vs.
+      baseline's 1e-3) since fine-tuning pretrained weights needs gentler
+      updates than training from random init. Implemented in
+      `notebooks/05_transfer_learning.ipynb` (self-contained, same pattern
+      as `04_baseline_model.ipynb`, incl. per-epoch Drive checkpointing).
+      Includes a direct re-check of the five specific confusions flagged
+      in stage 5 (e.g. 190->196, 184->183/193) against this model's
+      confusion matrix, since that's the actual question this experiment
+      is meant to answer. **Not yet run** — waiting on the user to execute
+      it in Colab and share the results.
 - [ ] 6.2 Compare runs and pick the best model using validation metrics
       (overall accuracy plus per-class balance, not accuracy alone).
 - [ ] 6.3 Run the chosen model once on the held-out test set for the final,

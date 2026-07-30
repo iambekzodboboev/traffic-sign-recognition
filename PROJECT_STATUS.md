@@ -6,8 +6,7 @@ Traffic Sign Recognition
 
 ## Current stage
 
-Stage 5 — Baseline model and experiments (see `ROADMAP.md` for full
-step-by-step plan)
+Stage 6 — Model selection (see `ROADMAP.md` for full step-by-step plan)
 
 ## Completed
 
@@ -70,6 +69,16 @@ step-by-step plan)
 - Trained model confirmed saved permanently in MLflow (Drive-backed),
   independent of notebook/session state
 - Work for stage 5 is in `notebooks/04_baseline_model.ipynb`
+- Stage 6.1 notebook built: `notebooks/05_transfer_learning.ipynb`, a
+  ResNet18 (ImageNet-pretrained, fully fine-tuned) experiment. Chosen over
+  a from-scratch deeper CNN because stage 5.4's finding was about
+  confusability between specific sign pairs, which pretrained features
+  should address more directly than raw added capacity. Same 64x64
+  pipeline, split, batch size, and 15 epochs as the baseline — only the
+  model changes, for a clean comparison. Learning rate lowered to 1e-4 for
+  fine-tuning. Ends with a direct re-check of the five confusions flagged
+  in stage 5 against the new confusion matrix. **Not yet run** — waiting
+  on the user to execute it in Colab.
 
 ## Stage 5 baseline results
 
@@ -165,14 +174,12 @@ limitation if asked during defense.
 
 ## Current task
 
-Stage 6.1 — decide what to try first, informed by stage 5's finding that
-confusability between specific sign pairs (not class imbalance) is the
-main weakness
+Stage 6.1 — run `notebooks/05_transfer_learning.ipynb` (ResNet18 transfer
+learning experiment) in Colab and share the results
 
 ## Next
 
-- 6.1 Try deliberate improvements (e.g. more model capacity/pretrained
-  backbone; possibly a visual check on the class-184 confusions first)
+- 6.1 Run the transfer-learning notebook, review results together
 - 6.2 Compare experiments, pick best model
 - 6.3 Final test-set evaluation
 
