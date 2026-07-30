@@ -6,7 +6,8 @@ Traffic Sign Recognition
 
 ## Current stage
 
-Stage 6 — Model selection (see `ROADMAP.md` for full step-by-step plan)
+Stage 7 — Inference / demo workflow (stage 6 complete; see `ROADMAP.md`
+for full step-by-step plan)
 
 ## Completed
 
@@ -81,36 +82,81 @@ Stage 6 — Model selection (see `ROADMAP.md` for full step-by-step plan)
   mislabeling" hypothesis, and suggests the 64x64 target resolution may
   be part of the problem (small text/arrows may not survive that
   downsampling).
-- Stage 6.1 notebook built: `notebooks/05_transfer_learning.ipynb`, a
-  ResNet18 (ImageNet-pretrained, fully fine-tuned) experiment. Chosen over
-  a from-scratch deeper CNN because stage 5.4's finding was about
-  confusability between specific sign pairs, which pretrained features
-  should address more directly than raw added capacity. Same 64x64
-  pipeline, split, batch size, and 15 epochs as the baseline — only the
-  model changes, for a clean comparison. Learning rate lowered to 1e-4 for
-  fine-tuning. Ends with a direct re-check of the five confusions flagged
-  in stage 5 against the new confusion matrix. **Revised**: the user
-  reported the first version took 2-3 hours in Colab (vs. baseline's
-  15-50 min); since the data pipeline is identical to the baseline's,
-  diagnosed the cause as ResNet18's heavier GPU compute running in full
-  FP32 rather than data loading. Added mixed precision (AMP) to the
-  training loop to fix this without changing what's being compared;
-  scaler state is now checkpointed too. **Revised again**: the real pain
-  point was reopening the notebook for any new step forcing a full
-  retrain, since a finished run's checkpoint was deleted and there was no
-  fast path back to it. Fixed by checking MLflow for an already-completed
-  `resnet18_transfer_15ep` run before training — if found, loads the
-  trained model directly instead of retraining. Training only happens
-  once. **Moved to Kaggle Notebooks**: Colab's free-tier GPU quota ran
-  out (from the earlier long pre-AMP attempts); this dataset is natively
-  hosted on Kaggle with a separate quota, so the notebook was adapted
-  instead of waiting Colab out — dataset now mounts via Kaggle's
-  "+ Add Input" (no download/unzip needed at all), MLflow tracking and
-  checkpoints moved from Drive to `/kaggle/working`, and the trained
-  model is also saved directly there as a plain file for easy reuse.
-  Real run should use Kaggle's "Save Version > Save & Run All", which
-  runs server-side (no tab-open requirement, unlike Colab). **Not yet
-  run** — waiting on the user to execute it on Kaggle.
+- Stage 6.1 done: ResNet18 (ImageNet-pretrained, fully fine-tuned)
+  transfer-learning experiment, chosen over a from-scratch deeper CNN
+  because stage 5.4's finding was about confusability between specific
+  sign pairs, which pretrained features address directly. Same 64x64
+  pipeline, split, batch size, and 15 epochs as the baseline (LR lowered
+  to 1e-4) — only the model changed, for a clean comparison. Iterated
+  twice before the real run (added mixed precision after an early attempt
+  took 2-3 hours in Colab; added a "skip training if an MLflow run
+  already finished" guard after reopening the notebook kept forcing full
+  retrains), then moved to Kaggle Notebooks after Colab's free-tier GPU
+  quota ran out. Run on Kaggle, trained and evaluated in
+  `notebooks/05_transfer_learning.ipynb` (built from
+  `scripts/build_notebook_05.py`, which matches exactly what was
+  executed). **Result: validation accuracy 0.9903** (vs. baseline's
+  0.8784) — every confusion flagged in stage 5 dropped to near-zero.
+- Stage 6.2 done: compared the two models on validation metrics beyond
+  raw accuracy (macro-F1, per-class accuracy std dev, worst-class
+  accuracy, accuracy-vs-training-size correlation). **ResNet18 wins on
+  every axis** — worst-class accuracy 0.8033 vs. baseline's 0.179;
+  macro-F1 0.9877 nearly matches overall accuracy (consistent strength
+  across all 200 classes); training-size correlation stayed near zero
+  (0.0381). **ResNet18 selected as the final model.**
+- Stage 6.3 done: final, one-time evaluation of the chosen model on the
+  held-out test set (untouched until the model was already selected).
+  **Final test accuracy: 0.9937** (99.37%), slightly above validation
+  accuracy — no overfitting from the iterative comparison process. Test
+  macro-F1 0.9937; worst test class 170 ("Phone") at 0.8846.
+- **Stage 6 (model selection) fully complete.**
+
+## Stage 6 model selection results
+
+**Chosen model**: ResNet18, ImageNet-pretrained, fully fine-tuned, same
+64x64 letterbox input/split/batch size as the baseline, 15 epochs, mixed
+precision. Trained and evaluated on Kaggle Notebooks (Colab's free-tier
+GPU quota ran out from earlier attempts before mixed precision was
+added). Code in `notebooks/05_transfer_learning.ipynb`.
+
+**Validation accuracy: 0.9903** vs. baseline's 0.8784. **Final held-out
+test accuracy: 0.9937** (99.37%) — slightly *above* validation, a good
+sign of no overfitting across the iterative comparison process.
+
+**The specific stage-5 confusions were essentially eliminated** (baseline
+count -> this model's count, same validation set):
+- `44 (Minor road, right)` <-> `45 (Minor road, left)`: 92x -> **0x**
+- `184 (Coverage area)` `->183 (Distance to the object)`: 52x -> **1x**
+- `184 (Coverage area)` `->193 (Limitation of parking duration)`: 46x -> **0x**
+- `189 (Validity period)` `->192 (Paid services)`: 51x -> **2x**
+- `190 (Method of parking)` `->196 (Dangerous roadside)` (the single
+  biggest baseline confusion): 122x -> **0x**
+- `42 (End of overtaking-by-lorries restriction)` `->32 (End of all
+  restrictions)`: 85x -> **0x**
+
+This directly confirms stage 5's hypothesis: the baseline's weakness was
+insufficient fine-grained visual discrimination (not class imbalance),
+and a pretrained backbone fixes it — even at the same 64x64 input size
+that stage 6.0's spot-check had flagged as a possible limiting factor for
+exactly these plate-style confusions.
+
+**Per-class balance (stage 6.2 criteria, not just overall accuracy)**:
+macro-averaged F1 0.9877 on validation (0.9937 on test) sits almost
+exactly at overall accuracy, meaning strength is consistent across all
+200 classes rather than concentrated in frequent ones. Worst-class
+accuracy rose from baseline's 0.179 (class 184) to 0.8033 on validation
+/ 0.8846 on test (a different class is now the worst in each split, as
+expected once the previously-worst classes were fixed). Accuracy-vs-
+training-size correlation stayed near zero (0.0381), confirming this
+model is, if anything, even less sensitive to the stage 3.2 class
+imbalance than the baseline was.
+
+**Honest caveat for defense**: stage 4 documented that near-duplicate
+deduplication isn't perfect (a known, stated limitation). 99%+ accuracy
+is a high number, but the improvement is targeted evidence, not generic
+inflation — it specifically resolved the exact confusions predicted by
+the stage 5 analysis, which is a harder pattern to explain away as
+leakage than a uniform accuracy bump would be.
 
 ## Stage 5 baseline results
 
@@ -206,19 +252,20 @@ limitation if asked during defense.
 
 ## Current task
 
-Stage 6.1 — run `notebooks/05_transfer_learning.ipynb` (ResNet18 transfer
-learning experiment) on Kaggle Notebooks (moved from Colab due to
-exhausted free-tier GPU quota) and share the results
+Stage 7.1 — export the trained ResNet18 model and the class-name mapping
+as small artifact files, to prepare for a local inference script
 
 ## Next
 
-- 6.1 Run the transfer-learning notebook on Kaggle, review results together
-- 6.2 Compare experiments, pick best model
-- 6.3 Final test-set evaluation
+- 7.1 Export trained model + class-name mapping as artifact files
+- 7.2 Local inference script: image in, predicted sign name + confidence out
+- 7.3 Revisit and decide: Telegram bot or web app for the demo
+- 7.4 Build and test a minimal version of the chosen interface end-to-end
 
 ## Known problems / blockers
 
-- Colab's free-tier GPU quota is currently exhausted (from earlier long
-  pre-mixed-precision training attempts) — stage 6.1 moved to Kaggle
-  Notebooks to work around it; may replenish later if Colab is needed
-  again for a future stage.
+- Colab's free-tier GPU quota was exhausted during stage 6.1 (from
+  earlier long pre-mixed-precision training attempts); worked around by
+  moving that notebook to Kaggle rather than waiting it out. Quota status
+  wasn't rechecked since, so assume it may still be limited if a future
+  stage wants to use Colab again.

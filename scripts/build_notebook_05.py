@@ -496,11 +496,154 @@ for true_c, pred_c, old_count, desc in flagged_pairs:
 
 print(f"\\nOverall validation accuracy: this model={val_acc:.4f}  baseline=0.8784")"""))
 
-cells.append(md("""### Result
+cells.append(md("""### Step 6.1 result
 
-Not yet run -- waiting on the user to execute this on Kaggle (Save
-Version > Save & Run All) and share the resulting numbers before
-deciding stage 6.2 (compare experiments, pick the best model)."""))
+Confirmed on Kaggle: **validation accuracy 0.9903** (vs. baseline's
+0.8784). Every confusion flagged in stage 5 dropped to near-zero: the
+mirror-image 44<->45 pair, the 184 "Coverage area" confusions, and the
+biggest baseline error (190 "Method of parking" -> 196 "Dangerous
+roadside", 122x at baseline) all fell to 0-2 occurrences. This confirms
+stage 5's hypothesis directly -- the baseline's weakness really was
+insufficient visual discrimination, not class imbalance, and a
+pretrained backbone fixes it even at the same 64x64 input size (the
+resolution trade-off flagged in step 6.1b turned out not to be a hard
+blocker)."""))
+
+cells.append(md("""## Step 6.2 -- Compare experiments and pick the best model
+
+Per-class balance, not just overall accuracy, per the roadmap's 6.2
+criteria: macro-averaged F1 (treats all 200 classes equally regardless
+of size), per-class accuracy std dev, worst-class accuracy, and the
+same accuracy-vs-training-size correlation check as stage 5.4 (to see if
+this pretrained model is still insensitive to the stage 3.2 imbalance).
+Baseline numbers are from the stage 5 writeup (its raw confusion matrix
+isn't available in this Kaggle session, only its documented summary
+stats)."""))
+
+cells.append(code("""from sklearn.metrics import precision_recall_fscore_support
+
+# --- This model's (ResNet18) per-class balance metrics ---
+macro_precision, macro_recall, macro_f1, _ = precision_recall_fscore_support(
+    val_labels.numpy(), val_preds.numpy(), labels=list(range(200)), average='macro', zero_division=0
+)
+
+per_class_acc = class_acc_df['accuracy'].values
+worst_class_row = class_acc_df.sort_values('accuracy').iloc[0]
+
+train_counts = train_dataset.df['class_id'].astype(int).value_counts()
+class_acc_df['n_train_images'] = class_acc_df['class_id'].map(train_counts).fillna(0)
+size_correlation = class_acc_df['accuracy'].corr(class_acc_df['n_train_images'])
+
+print("=" * 72)
+print("STAGE 6.2 -- MODEL COMPARISON")
+print("(baseline numbers are from the stage 5 writeup, not recomputed here --")
+print(" baseline's raw confusion matrix isn't available in this Kaggle session)")
+print("=" * 72)
+print(f"{'metric':<45}{'baseline (CNN)':>13}{'this (ResNet18)':>14}")
+print(f"{'Overall validation accuracy':<45}{0.8784:>13.4f}{val_acc:>14.4f}")
+print(f"{'Worst single class accuracy':<45}{0.179:>13.4f}{worst_class_row['accuracy']:>14.4f}")
+print(f"{'Per-class accuracy std dev':<45}{'n/a':>13}{per_class_acc.std():>14.4f}")
+print(f"{'Macro-averaged F1 (all 200 classes equal)':<45}{'n/a':>13}{macro_f1:>14.4f}")
+print(f"{'Corr(accuracy, training-set size)':<45}{-0.124:>13.4f}{size_correlation:>14.4f}")
+print("=" * 72)
+
+print(f"\\nWorst class for this model: {int(worst_class_row['class_id'])} "
+      f"({worst_class_row['name']}) at {worst_class_row['accuracy']:.4f} accuracy "
+      f"(baseline's worst was class 184 'Coverage area' at 0.179).")
+
+print("\\nDecision: ResNet18 (this run) wins on every axis measured -- overall "
+      "accuracy, worst-class accuracy, and the specific stage-5 confusions "
+      "(see step 6.1f) -- so it's the model selected coming out of stage 6.2.")
+
+try:
+    with mlflow.start_run(run_id=run_id):
+        mlflow.set_tag("stage6.2_decision", "selected as best model")
+        mlflow.log_metrics({
+            "macro_f1": macro_f1,
+            "macro_precision": macro_precision,
+            "macro_recall": macro_recall,
+            "worst_class_accuracy": float(worst_class_row['accuracy']),
+            "per_class_accuracy_std": float(per_class_acc.std()),
+            "train_size_correlation": float(size_correlation),
+        })
+    print(f"\\nLogged stage 6.2 comparison metrics to MLflow run {run_id}.")
+except Exception as e:
+    print(f"\\n(Could not log extra metrics to MLflow: {e} -- comparison above is unaffected.)")"""))
+
+cells.append(md("""### Step 6.2 result
+
+Confirmed on Kaggle: ResNet18 wins on every metric. Worst-class accuracy
+jumped from 0.179 (baseline's class 184) to 0.8033 (a different class,
+54 "Intersection of equivalent roads" -- expected, since fixing the
+previously-worst classes surfaces a new relative worst, still far
+higher). Macro-F1 (0.9877) sits almost exactly at overall accuracy
+(0.9903), meaning the model is strong across all 200 classes equally,
+not just the frequent ones. Training-size correlation (0.0381) stayed
+near zero, confirming this model is, if anything, even less sensitive to
+the stage 3.2 imbalance than the baseline was. **ResNet18 selected as
+the final model.**"""))
+
+cells.append(md("""## Step 6.3 -- Final test-set evaluation (run once)
+
+The test set has not been touched until now, specifically so it isn't
+implicitly tuned against while comparing experiments in 6.1/6.2. This is
+the one number that gets reported as the final result."""))
+
+cells.append(code("""test_loss, test_acc, test_preds, test_labels = evaluate(model, test_loader, criterion, device)
+print(f"FINAL TEST SET ACCURACY: {test_acc:.4f} ({test_acc*100:.2f}%)")
+print(f"(For reference: validation accuracy was {val_acc:.4f})")
+
+test_cm = confusion_matrix(test_labels.numpy(), test_preds.numpy(), labels=list(range(200)))
+test_per_class_acc = test_cm.diagonal() / test_cm.sum(axis=1).clip(min=1)
+
+test_macro_precision, test_macro_recall, test_macro_f1, _ = precision_recall_fscore_support(
+    test_labels.numpy(), test_preds.numpy(), labels=list(range(200)), average='macro', zero_division=0
+)
+
+test_class_acc_df = pd.DataFrame({
+    'class_id': range(200),
+    'accuracy': test_per_class_acc,
+    'n_test_images': test_cm.sum(axis=1),
+}).merge(class_names_df, on='class_id', how='left')
+
+worst_test_row = test_class_acc_df.sort_values('accuracy').iloc[0]
+
+print(f"\\nTest per-class accuracy std dev: {test_per_class_acc.std():.4f}")
+print(f"Test macro-averaged F1: {test_macro_f1:.4f}")
+print(f"Worst class on test set: {int(worst_test_row['class_id'])} ({worst_test_row['name']}) "
+      f"at {worst_test_row['accuracy']:.4f} accuracy")
+
+print("\\n15 worst-performing classes on TEST set:")
+print(test_class_acc_df.sort_values('accuracy')[['class_id', 'name', 'accuracy', 'n_test_images']]
+      .head(15).to_string(index=False))
+
+try:
+    with mlflow.start_run(run_id=run_id):
+        mlflow.log_metrics({
+            "test_acc": test_acc,
+            "test_loss": test_loss,
+            "test_macro_f1": test_macro_f1,
+            "test_per_class_accuracy_std": float(test_per_class_acc.std()),
+        })
+        mlflow.set_tag("stage6.3_final_test_accuracy", f"{test_acc:.4f}")
+    print(f"\\nLogged final test-set metrics to MLflow run {run_id}.")
+except Exception as e:
+    print(f"\\n(Could not log test metrics to MLflow: {e} -- printed results above are unaffected.)")"""))
+
+cells.append(md("""### Final stage 6 result
+
+Confirmed on Kaggle: **final test-set accuracy 0.9937** (99.37%),
+slightly *above* the validation accuracy (0.9903) -- a good sign of no
+overfitting to the validation set across the iterative comparison
+process. Test macro-F1 0.9937, essentially matching accuracy (consistent
+strength across all 200 classes). Worst class on the test set: 170
+"Phone" at 0.8846 accuracy -- every one of the 15 worst test classes
+still scored above 88%.
+
+**Stage 6 (model selection) is complete.** ResNet18 (ImageNet-pretrained,
+fully fine-tuned, 64x64 input, 15 epochs, mixed precision) is the chosen
+model, trained and evaluated on Kaggle Notebooks after Colab's free-tier
+GPU quota ran out. Next: stage 7 (inference/demo workflow)."""))
 
 nb = {
     "cells": cells,

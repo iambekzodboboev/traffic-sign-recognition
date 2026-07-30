@@ -209,62 +209,66 @@ what to try in stage 6.
       target resolution itself may be part of why: the distinguishing
       detail in these plates is small text/arrows that may not survive
       that much downsampling.
-- [ ] 6.1 Try a small number of deliberate improvements one at a time
+- [x] 6.1 Try a small number of deliberate improvements one at a time
       (augmentation, class weighting, a deeper network or transfer learning
-      backbone), tracking each as its own MLflow run. **First experiment
-      chosen: a pretrained ResNet18 backbone (transfer learning), fully
-      fine-tuned**, over a from-scratch deeper CNN — stage 5.4 found the
+      backbone), tracking each as its own MLflow run. **Experiment: a
+      pretrained ResNet18 backbone (transfer learning), fully fine-tuned**,
+      chosen over a from-scratch deeper CNN — stage 5.4 found the
       baseline's weakness was specific visual confusability between sign
       pairs, not lack of raw model size, and a pretrained backbone brings
       much richer discriminative features than more from-scratch capacity
       would. Everything else (64x64 letterbox pipeline, split, batch size,
-      15 epochs) kept identical to the baseline so this is a clean
-      single-variable comparison. Learning rate lowered to 1e-4 (vs.
-      baseline's 1e-3) since fine-tuning pretrained weights needs gentler
-      updates than training from random init. **Revised after the user
-      reported the first version took 2-3 hours in Colab** (vs. the
-      baseline's 15-50 min) — added automatic mixed precision (AMP,
-      `torch.amp.autocast` + `GradScaler`) to the training loop, since the
-      data pipeline is identical to the baseline's and the slowdown must
-      be ResNet18's heavier GPU compute running in full FP32 rather than
-      using the T4's tensor cores. This only changes training speed, not
-      what's being compared; scaler state is checkpointed too so
-      disconnect/resume still works correctly. **Revised again** after the
-      user's real pain point turned out to be different from raw speed:
-      every time they reopened the notebook for a new step, it retrained
-      from scratch (Colab wipes local disk each session, and the old code
-      always deleted its checkpoint once a run finished, so a completed
-      model had no fast path back). Fixed by checking MLflow for an
-      already-**completed** run named `resnet18_transfer_15ep` before
-      training anything — if found, the notebook just loads that trained
-      model (`mlflow.pytorch.load_model`) and skips straight to
-      evaluation. Training for real only happens once, the first time it
-      succeeds (or again if that MLflow run is deliberately deleted).
-      Includes a direct re-check of the five specific confusions flagged
-      in stage 5 (e.g. 190->196, 184->183/193) against this model's
-      confusion matrix, since that's the actual question this experiment
-      is meant to answer.
-      **Moved to Kaggle Notebooks**: Colab's free-tier GPU quota ran out
-      (from the earlier long pre-AMP training attempts), and this exact
-      dataset is natively hosted on Kaggle with a separate GPU quota, so
-      the notebook was adapted rather than waiting Colab out. Changes:
-      dataset is mounted via Kaggle's "+ Add Input" (no download/unzip —
-      Kaggle's version of stage 0.2's Drive-download step is unnecessary
-      here), MLflow tracking and checkpoints moved from Drive to
-      `/kaggle/working` (Kaggle's writable, session-persistent output
-      directory), and the model's state dict is also saved directly to
-      `/kaggle/working` so it's downloadable from the Output tab
-      independent of MLflow. Real run should use **Save Version > Save &
-      Run All (Commit)**, which executes server-side and isn't tied to
-      keeping a browser tab open (removing the ~90-min Colab disconnect
-      risk entirely for this notebook). Implemented in
-      `notebooks/05_transfer_learning.ipynb` (still self-contained, same
-      pattern as `04_baseline_model.ipynb`). **Not yet run** — waiting on
-      the user to execute it on Kaggle and share the results.
-- [ ] 6.2 Compare runs and pick the best model using validation metrics
-      (overall accuracy plus per-class balance, not accuracy alone).
-- [ ] 6.3 Run the chosen model once on the held-out test set for the final,
-      reported number.
+      15 epochs) kept identical to the baseline for a clean single-variable
+      comparison; learning rate lowered to 1e-4 for gentler fine-tuning
+      updates. Iterated on twice before running for real: added mixed
+      precision (`torch.amp.autocast` + `GradScaler`) after an early
+      pre-fix attempt took 2-3 hours in Colab vs. the baseline's 15-50 min
+      (data pipeline is identical between the two, so the slowdown was
+      ResNet18's heavier GPU compute in full FP32, not data loading); then
+      added a "check MLflow for an already-finished run before training"
+      guard after realizing every notebook reopen was forcing a full
+      retrain with no fast path back to an already-trained model. **Moved
+      to Kaggle Notebooks** after Colab's free-tier GPU quota was
+      exhausted (from the earlier long pre-AMP attempts) — this dataset is
+      natively hosted on Kaggle with a separate quota. Adapted: dataset
+      mounts via Kaggle's "+ Add Input" (no download/unzip needed at all),
+      MLflow tracking/checkpoints moved from Drive to `/kaggle/working`,
+      model also saved there directly as a plain file. Implemented (and
+      matches exactly what was executed) in
+      `notebooks/05_transfer_learning.ipynb`, built from
+      `scripts/build_notebook_05.py`.
+      **Result, confirmed on Kaggle: validation accuracy 0.9903** (vs.
+      baseline's 0.8784). Every confusion flagged in stage 5 dropped to
+      near-zero (e.g. the 122x baseline confusion 190->196 fell to 0x) —
+      direct confirmation that a pretrained backbone fixes the specific
+      visual-similarity weakness identified in stage 5, even at the same
+      64x64 input the stage 6.0 spot-check had flagged as a possible
+      limiting factor.
+- [x] 6.2 Compare runs and pick the best model using validation metrics
+      (overall accuracy plus per-class balance, not accuracy alone):
+      macro-averaged F1, per-class accuracy std dev, worst-class accuracy,
+      and the same accuracy-vs-training-size correlation check as stage
+      5.4. **Result**: ResNet18 wins on every axis — worst-class accuracy
+      0.8033 vs. baseline's 0.179 (a different class is now the worst,
+      class 54 "Intersection of equivalent roads", since the previously-
+      worst classes were fixed); macro-F1 0.9877 sits almost exactly at
+      overall accuracy, meaning strength is consistent across all 200
+      classes, not concentrated in frequent ones; training-size
+      correlation stayed near zero (0.0381), confirming this model is, if
+      anything, even less sensitive to the stage 3.2 imbalance than the
+      baseline. **ResNet18 selected as the final model.**
+- [x] 6.3 Run the chosen model once on the held-out test set for the final,
+      reported number (test set untouched until the model was already
+      chosen in 6.2, so it isn't implicitly tuned against). **Result:
+      final test accuracy 0.9937** (99.37%), slightly *above* validation
+      accuracy (0.9903) — a good sign of no overfitting from the iterative
+      comparison process. Test macro-F1 0.9937 (essentially matching
+      accuracy). Worst class on test: 170 "Phone" at 0.8846 — every one of
+      the 15 worst test classes still scored above 88%.
+
+**Stage 6 complete.** Final model: ResNet18 (ImageNet-pretrained, fully
+fine-tuned, 64x64 input, 15 epochs, mixed precision), trained and
+evaluated on Kaggle Notebooks, 99.37% held-out test accuracy.
 
 ## 7. Inference / demo workflow
 
