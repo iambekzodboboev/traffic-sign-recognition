@@ -6,8 +6,8 @@ Traffic Sign Recognition
 
 ## Current stage
 
-Stage 7 — Inference / demo workflow (stage 6 complete; see `ROADMAP.md`
-for full step-by-step plan)
+Stage 8 — Reproducibility, documentation, defense prep (stages 1-7
+complete; see `ROADMAP.md` for full step-by-step plan)
 
 ## Completed
 
@@ -126,6 +126,21 @@ for full step-by-step plan)
   44, 45, 184, 190, including the previously-confused 44/45 mirror pair
   and 184's old confusions) — all 6 predicted correctly at 99.99-100%
   confidence.
+- Stage 7.3 done: decided on a **Telegram bot** for the demo — user sends
+  a photo, bot replies with sign name, category (mandatory/warning/etc.
+  — already in `metadata/class_names.csv`'s `category` column, no new
+  work), confidence, and a clean reference icon. Extracted one canonical
+  reference icon per class from the dataset zip's `Classes/` folder via
+  `scripts/extract_reference_icons.py` into `assets/class_icons/` (all
+  200 resolved unambiguously; 1.4MB total, committed directly).
+- Stage 7.4 done: `bot.py`, built with `pyTelegramBotAPI`, reuses
+  `scripts/predict_sign.py`'s model-loading/prediction logic directly —
+  runs entirely on CPU. Bot token from @BotFather stored in a local
+  gitignored `.env` (loaded via `python-dotenv`), never committed.
+  **Verified working end-to-end**: tested live on Telegram with a real
+  photo, got back the correct sign name, category, confidence, and
+  reference icon.
+- **Stage 7 (inference/demo workflow) fully complete.**
 
 ## Stage 6 model selection results
 
@@ -268,13 +283,15 @@ limitation if asked during defense.
 
 ## Current task
 
-Stage 7.3 — decide: Telegram bot or web app for the demo (deliberately
-left open until modeling was done; revisit now)
+Stage 8.1 — clean up the final notebooks/scripts and confirm
+`requirements.txt` is accurate, so the whole pipeline can be rerun from
+scratch (not started yet; discuss scope with the user first)
 
 ## Next
 
-- 7.3 Revisit and decide: Telegram bot or web app for the demo
-- 7.4 Build and test a minimal version of the chosen interface end-to-end
+- 8.1 Clean up final notebooks/scripts, confirm `requirements.txt` is accurate
+- 8.2 Update `README.md` with how to reproduce and the main results
+- 8.3 Update `PROJECT_STATUS.md` to reflect completion, prepare defense summary
 
 ## Known problems / blockers
 

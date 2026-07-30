@@ -296,9 +296,27 @@ evaluated on Kaggle Notebooks, 99.37% held-out test accuracy.
       184, 190 — including the previously-confused mirror pair 44/45 and
       class 184's old confusions) — all 6 predicted correctly at
       99.99-100% confidence.
-- [ ] 7.3 Revisit and decide: Telegram bot or web app for the demo.
-- [ ] 7.4 Build and test a minimal version of the chosen interface end-to-end
-      with a real photo.
+- [x] 7.3 Revisit and decide: Telegram bot or web app for the demo.
+      **Decided: Telegram bot** — user sends a photo, bot replies with the
+      predicted sign name, category (mandatory/warning/etc. — already
+      available in `metadata/class_names.csv`'s `category` column, no new
+      work needed), confidence, and a clean reference picture of that
+      sign type. Reference icons extracted one-time from the dataset
+      zip's `Classes/` folder via `scripts/extract_reference_icons.py`
+      into `assets/class_icons/<class_id>.png` (200/200 resolved
+      unambiguously, 1.4MB total, small enough to commit directly unlike
+      the dataset zip or model weights).
+- [x] 7.4 Build and test a minimal version of the chosen interface end-to-end
+      with a real photo. **Done**: `bot.py`, built with `pyTelegramBotAPI`,
+      reuses `scripts/predict_sign.py`'s model-loading/prediction logic
+      directly. Runs entirely on CPU, no GPU/Kaggle needed. Bot token
+      registered via @BotFather, stored in a local gitignored `.env`
+      file (loaded via `python-dotenv`), never committed. **Verified
+      working end-to-end**: user messaged the live bot on Telegram,
+      sent a real photo, got back the correct sign name + category +
+      confidence + reference icon.
+
+**Stage 7 (inference/demo) complete.**
 
 ## 8. Reproducibility, documentation, defense prep
 
