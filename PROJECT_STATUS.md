@@ -69,6 +69,18 @@ Stage 6 — Model selection (see `ROADMAP.md` for full step-by-step plan)
 - Trained model confirmed saved permanently in MLflow (Drive-backed),
   independent of notebook/session state
 - Work for stage 5 is in `notebooks/04_baseline_model.ipynb`
+- Stage 6.0 done: cheap visual spot-check (no Colab/GPU) on class 184
+  ("Coverage area") against its two biggest baseline confusions, 183
+  ("Distance to the object") and 193 ("Limitation of parking duration") —
+  sampled directly from the local dataset zip via
+  `scripts/spot_check_184.py`. **Not a labeling bug**: all three are
+  genuinely distinct, correctly-labeled sign types. 184 and 183 are
+  near-visual-twins (same white plate/font/"distance in meters" text,
+  differing mainly by an arrow); 184 and 193 differ mainly by "M" vs.
+  "мин" text. Confirms stage 5's "genuine visual similarity, not
+  mislabeling" hypothesis, and suggests the 64x64 target resolution may
+  be part of the problem (small text/arrows may not survive that
+  downsampling).
 - Stage 6.1 notebook built: `notebooks/05_transfer_learning.ipynb`, a
   ResNet18 (ImageNet-pretrained, fully fine-tuned) experiment. Chosen over
   a from-scratch deeper CNN because stage 5.4's finding was about

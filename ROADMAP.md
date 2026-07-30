@@ -192,6 +192,23 @@ what to try in stage 6.
 
 ## 6. Model selection
 
+- [x] 6.0 Cheap visual spot-check on class 184's two biggest confusions,
+      done locally (no Colab/GPU needed) before spending a full retraining
+      run: sampled 6 random images each from classes 184 ("Coverage area"),
+      183 ("Distance to the object"), 193 ("Limitation of parking
+      duration") directly from the local dataset zip via
+      `scripts/spot_check_184.py`. **Finding: not a labeling bug.** All
+      three classes are genuinely distinct, correctly-labeled sign types
+      (arrow + distance-in-meters plate; plain distance-in-meters plate;
+      duration-in-minutes plate). But 184 vs. 183 are near-visual-twins —
+      same white rectangular plate, same font, same "distance in meters"
+      text, differing only by the presence/direction of an arrow, which is
+      a small detail. 184 vs. 193 differ mainly by "M" vs. "мин" text,
+      easily lost at low resolution. This confirms stage 5's hypothesis
+      (genuine visual similarity, not mislabeling) and suggests the 64x64
+      target resolution itself may be part of why: the distinguishing
+      detail in these plates is small text/arrows that may not survive
+      that much downsampling.
 - [ ] 6.1 Try a small number of deliberate improvements one at a time
       (augmentation, class weighting, a deeper network or transfer learning
       backbone), tracking each as its own MLflow run. **First experiment
