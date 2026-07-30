@@ -136,11 +136,16 @@ Git/GitHub set up, Python environment installed, dataset present locally.
       6.1), light augmentation (rotation + color jitter) on training data
       only.
 - [x] 4.4 Build the PyTorch Dataset/DataLoader from the split manifest; sanity
-      check by loading and visualizing one batch. **Done**: custom
-      `TrafficSignDataset` reading the manifest, `WeightedRandomSampler`
-      on the training loader (oversamples minority classes, addressing
-      3.2's imbalance without class-specific augmentation logic). Pending
-      user's visual confirmation of the sanity-check batch in Colab.
+      check by loading and visualizing one batch. **Done, verified in
+      Colab**: custom `TrafficSignDataset` reading the manifest,
+      `WeightedRandomSampler` on the training loader (oversamples minority
+      classes, addressing 3.2's imbalance without class-specific
+      augmentation logic). Batch shape confirmed `[64, 3, 64, 64]`;
+      letterboxing visible (black padding on non-square signs, not
+      stretched); augmentation visible (rotation/color jitter); class
+      names matched their images correctly (e.g. class 97 showed a
+      hazmat/explosive-load icon, class 103 showed pedestrian+bicycle
+      icons).
 
 ## 5. Baseline model and experiments
 

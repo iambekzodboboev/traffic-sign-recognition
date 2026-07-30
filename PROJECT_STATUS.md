@@ -6,7 +6,7 @@ Traffic Sign Recognition
 
 ## Current stage
 
-Stage 4 — Preprocessing and leakage prevention (see `ROADMAP.md` for full
+Stage 5 — Baseline model and experiments (see `ROADMAP.md` for full
 step-by-step plan)
 
 ## Completed
@@ -59,7 +59,9 @@ step-by-step plan)
 - Stage 4.4 done: PyTorch `TrafficSignDataset` + DataLoaders built from the
   manifest, with a `WeightedRandomSampler` on training to oversample
   minority classes (addresses 3.2's imbalance); sanity-check batch
-  visualization added, pending the user's visual confirmation in Colab
+  verified in Colab — batch shape `[64, 3, 64, 64]` correct, letterbox
+  padding visible, augmentation visible, class names matched their images
+- Stage 4 fully complete and verified
 - Work for stage 4 is in `notebooks/03_preprocessing.ipynb`
 
 ## Stage 3 data audit summary
@@ -113,15 +115,14 @@ limitation if asked during defense.
 
 ## Current task
 
-Waiting for the user to visually confirm the stage 4.4 sanity-check batch
-in Colab, then move to stage 5 (baseline model and experiments)
+Stage 5.1 — set up MLflow tracking
 
 ## Next
 
-- Confirm stage 4 sanity check
 - 5.1 Set up MLflow tracking
 - 5.2 Baseline model, prove the training loop works end-to-end
 - 5.3 Train baseline on full dataset
+- 5.4 Evaluate on validation set, confusion matrix / per-class accuracy
 
 ## Known problems / blockers
 
