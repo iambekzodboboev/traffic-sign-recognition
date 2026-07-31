@@ -27,6 +27,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 CLASS_NAMES_PATH = PROJECT_ROOT / "metadata" / "class_names.csv"
 ICONS_DIR = PROJECT_ROOT / "assets" / "class_icons"
 
+CONFIDENCE_THRESHOLD = 0.60
+
 bot = telebot.TeleBot(BOT_TOKEN)
 class_names_df = pd.read_csv(CLASS_NAMES_PATH)
 model = load_model()
@@ -53,6 +55,14 @@ def handle_photo(message):
     try:
         results = predict(tmp_path, model, class_names_df, top_k=1)
         class_id, name, confidence = results[0]
+
+        if confidence < CONFIDENCE_THRESHOLD:
+            bot.reply_to(
+                message,
+                f"I'm not confident about this one (only {confidence * 100:.0f}% sure) -- "
+                "could you try a closer, clearer photo of just the sign?"
+            )
+            return
 
         category_row = class_names_df.loc[class_names_df["class_id"] == class_id, "category"]
         category = category_row.values[0] if len(category_row) else "Unknown"
