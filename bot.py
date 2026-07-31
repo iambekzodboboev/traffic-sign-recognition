@@ -11,6 +11,7 @@ Then message your bot on Telegram (search for the username you gave
 BotFather) and send it a photo.
 """
 import os
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -55,6 +56,7 @@ def handle_photo(message):
 
         category_row = class_names_df.loc[class_names_df["class_id"] == class_id, "category"]
         category = category_row.values[0] if len(category_row) else "Unknown"
+        category = re.sub(r"^\d+\s*", "", category)  # strip the CSV's leading group number, e.g. "6 Information" -> "Information"
 
         caption = (
             f"Sign: {name}\n"
