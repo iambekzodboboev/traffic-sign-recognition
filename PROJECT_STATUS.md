@@ -311,3 +311,14 @@ still unchanged.
   moving that notebook to Kaggle rather than waiting it out. Quota status
   wasn't rechecked since, so assume it may still be limited if a future
   stage wants to use Colab again.
+- **Real-world limitation found via live bot testing**: a wide street-scene
+  photo (sign small within a lot of background — trees, road, crosswalk)
+  was misclassified, but with notably low confidence (42.7%, vs. 99%+ on
+  every other tested photo) rather than confidently wrong. Likely cause:
+  the training dataset's photos are tighter, sign-focused shots, so a
+  whole-scene photo shrinks the actual sign to a small, cluttered patch
+  after the 64x64 resize — a framing/domain-gap issue, not a sign of poor
+  model accuracy. This is direct, real-world evidence for why the future
+  plan (Section 10 of the project report / the presentation's future-vision
+  slide) includes a detection step to locate and crop the sign *before*
+  classifying it, rather than classifying a whole photo directly.
