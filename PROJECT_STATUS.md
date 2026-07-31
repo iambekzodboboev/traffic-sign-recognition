@@ -141,6 +141,14 @@ complete; see `ROADMAP.md` for full step-by-step plan)
   photo, got back the correct sign name, category, confidence, and
   reference icon.
 - **Stage 7 (inference/demo workflow) fully complete.**
+- Stage 8.2/8.3 (partial) done: `Traffic_Sign_Recognition_Project_Report.docx`
+  — a comprehensive, stage-by-stage narrative report covering the whole
+  project (stages 0-7), organized around what was measured at each step,
+  what it showed, and what decision followed from it, readable without
+  needing to look at the code. Includes three charts generated from the
+  real data/results and the full results tables. `README.md` itself
+  hasn't been updated yet, and 8.1 (notebook/script cleanup) hasn't been
+  started.
 
 ## Stage 6 model selection results
 
@@ -285,7 +293,10 @@ limitation if asked during defense.
 
 Stage 8.1 — clean up the final notebooks/scripts and confirm
 `requirements.txt` is accurate, so the whole pipeline can be rerun from
-scratch (not started yet; discuss scope with the user first)
+scratch (not started yet; discuss scope with the user first). Stage 8.2's
+comprehensive narrative report is done
+(`Traffic_Sign_Recognition_Project_Report.docx`); README.md itself is
+still unchanged.
 
 ## Next
 
