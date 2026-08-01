@@ -9,7 +9,10 @@ Streamlit UI around it.
 Run locally:
     streamlit run streamlit_app/app.py
 """
+import base64
+import json
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -17,8 +20,10 @@ from collections import Counter
 from pathlib import Path
 
 import cv2
+import imageio_ffmpeg
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "video_detection"))
@@ -31,6 +36,8 @@ from process_video import SAMPLE_FPS, CONFIDENCE_THRESHOLD, _clip_box  # noqa: E
 
 MAX_PROCESS_SECONDS = 90  # cap live scanning time so it stays responsive on free hosting
 MAX_LINK_DOWNLOAD_SECONDS = 600  # reject links longer than this before even downloading
+CLIP_MAX_WIDTH = 640  # keep the browser-playable clip small enough to embed
+MARKER_COLOR = "#0E7C86"
 
 CATEGORY_COLORS = {
     "Priority": ("#EAF3DE", "#3B6D11"),
@@ -77,11 +84,6 @@ st.markdown(
 @st.cache_resource(show_spinner="Loading the sign classifier (one-time)...")
 def get_classifier():
     return load_classifier()
-
-
-def pill_html(label, category):
-    bg, fg = CATEGORY_COLORS.get(category, ("#F4F6F8", "#475569"))
-    return f'<span class="pill" style="background:{bg};color:{fg};">{label}</span>'
 
 
 def get_video_meta(path):
@@ -134,24 +136,44 @@ def download_from_link(url, dest_dir):
         return Path(ydl.prepare_filename(info))
 
 
+def prepare_canonical_clip(source_path, dest_dir):
+    """Trims to MAX_PROCESS_SECONDS and transcodes to browser-playable H.264,
+    via the static ffmpeg binary bundled by imageio-ffmpeg (no system ffmpeg
+    needed, works the same locally and on Streamlit Cloud). This clip is
+    used both for the actual detection pass and for on-page playback, so
+    the two are always talking about the exact same frames/timestamps."""
+    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+    out_path = Path(dest_dir) / "clip.mp4"
+    cmd = [
+        ffmpeg_exe, "-y", "-i", str(source_path),
+        "-t", str(MAX_PROCESS_SECONDS),
+        "-an",
+        "-vf", f"scale='min({CLIP_MAX_WIDTH},iw)':-2",
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "28",
+        "-movflags", "+faststart",
+        str(out_path),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0 or not out_path.exists():
+        raise RuntimeError(f"couldn't prepare the video for playback ({result.stderr[-300:]})")
+    return out_path
+
+
 def run_scan(video_path):
+    if st.session_state.get("cap_message"):
+        st.info(st.session_state.cap_message)
+
     model, class_names_df = get_classifier()
     fps, frame_count, width, height, duration = get_video_meta(video_path)
-    process_seconds = min(duration, MAX_PROCESS_SECONDS)
     frame_stride = max(1, round(fps / SAMPLE_FPS))
-    max_frames = int(process_seconds * fps)
 
-    if duration > MAX_PROCESS_SECONDS:
-        st.info(
-            f"This video is {fmt_time(duration)} long -- scanning the first "
-            f"{fmt_time(MAX_PROCESS_SECONDS)} to keep the demo responsive."
-        )
+    st.video(str(video_path), autoplay=True, muted=True)
 
     cap = cv2.VideoCapture(str(video_path))
     tracker = SignTracker()
     first_seen_sample = {}
+    first_seen_box = {}
 
-    preview_ph = st.empty()
     progress_ph = st.progress(0.0)
     status_ph = st.empty()
     feed_header_ph = st.empty()
@@ -163,7 +185,7 @@ def run_scan(video_path):
     sample_idx = 0
     start = time.time()
 
-    while frame_idx < max_frames:
+    while frame_idx < frame_count:
         ret, frame = cap.read()
         if not ret:
             break
@@ -182,32 +204,20 @@ def run_scan(video_path):
 
             track_ids = tracker.update(sample_idx, detections)
 
-            annotated = frame.copy()
             for (box, class_id, name, category, confidence), track_id in zip(detections, track_ids):
                 x, y, w, h = box
                 if track_id not in first_seen_sample:
                     first_seen_sample[track_id] = sample_idx
-                    if confidence >= CONFIDENCE_THRESHOLD:
-                        history.insert(0, {
-                            "time": fmt_time(sample_idx / SAMPLE_FPS),
-                            "name": name, "category": category, "confidence": confidence,
-                        })
-                    else:
-                        history.insert(0, {
-                            "time": fmt_time(sample_idx / SAMPLE_FPS),
-                            "name": name, "category": "unsure", "confidence": confidence,
-                        })
+                    first_seen_box[track_id] = {
+                        "x": x / width, "y": y / height, "w": w / width, "h": h / height,
+                    }
+                    entry_category = category if confidence >= CONFIDENCE_THRESHOLD else "unsure"
+                    history.insert(0, {"time": fmt_time(sample_idx / SAMPLE_FPS), "name": name, "category": entry_category})
 
-                color = (0, 165, 255) if confidence < CONFIDENCE_THRESHOLD else (14, 124, 134)
-                label = f"{name} {confidence * 100:.0f}%"
-                cv2.rectangle(annotated, (x, y), (x + w, y + h), color, 2)
-                cv2.putText(annotated, label, (x, max(0, y - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-
-            preview_ph.image(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB), use_container_width=True)
-            progress_ph.progress(min(1.0, frame_idx / max(max_frames, 1)))
+            progress_ph.progress(min(1.0, frame_idx / max(frame_count, 1)))
             confident_count = sum(1 for h in history if h["category"] != "unsure")
             status_ph.markdown(
-                f"Scanning -- {fmt_time(frame_idx / fps)} / {fmt_time(process_seconds)}  ·  "
+                f"Scanning -- {fmt_time(frame_idx / fps)} / {fmt_time(duration)}  ·  "
                 f"**{confident_count} signs found so far**"
             )
 
@@ -232,15 +242,95 @@ def run_scan(video_path):
     for r in reports:
         sample = first_seen_sample.get(r["track_id"], 0)
         r["first_seen_s"] = sample / SAMPLE_FPS
+        r["box"] = first_seen_box.get(r["track_id"], {"x": 0, "y": 0, "w": 0, "h": 0})
 
     elapsed = time.time() - start
     st.session_state.reports = reports
     st.session_state.video_meta = {
-        "duration": process_seconds, "fps": fps, "frames_scanned": sample_idx,
+        "duration": duration, "fps": fps, "frames_scanned": sample_idx,
         "elapsed": elapsed,
     }
     st.session_state.stage = "done"
     st.rerun()
+
+
+def render_interactive_player(clip_path, reports):
+    """A single self-contained HTML component: the clip, plus a clickable
+    list of every sign found. Clicking a row seeks the video to that
+    moment, pauses it, and draws a box + name/confidence label over the
+    sign, using the (x, y, w, h) fractions captured during the scan."""
+    clip_b64 = base64.b64encode(Path(clip_path).read_bytes()).decode("ascii")
+
+    signs = []
+    for r in sorted(reports, key=lambda r: r["first_seen_s"]):
+        bg, fg = CATEGORY_COLORS.get(r["category"], ("#F4F6F8", "#475569"))
+        signs.append({
+            "time": r["first_seen_s"], "time_label": fmt_time(r["first_seen_s"]),
+            "name": r["name"], "category": r["category"],
+            "confidence_pct": round(r["confidence"] * 100),
+            "x": r["box"]["x"], "y": r["box"]["y"], "w": r["box"]["w"], "h": r["box"]["h"],
+            "bg": bg, "fg": fg,
+        })
+
+    rows_html = "".join(
+        f'<div class="prow" id="prow-{i}" onclick="seekTo({i})">'
+        f'<span class="pname">{s["name"]}</span>'
+        f'<span class="ppill" style="background:{s["bg"]};color:{s["fg"]};">{s["category"]}</span>'
+        f'<span class="pts">{s["confidence_pct"]}%</span>'
+        f'<span class="pts">{s["time_label"]}</span>'
+        f'</div>'
+        for i, s in enumerate(signs)
+    )
+
+    html = f"""
+    <div class="player-wrap">
+      <video id="rv" controls playsinline>
+        <source src="data:video/mp4;base64,{clip_b64}" type="video/mp4">
+      </video>
+      <div id="marker" class="marker"><span id="marker-label" class="marker-label"></span></div>
+    </div>
+    <div class="plist">{rows_html}</div>
+    <style>
+      * {{ box-sizing: border-box; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }}
+      .player-wrap {{ position: relative; margin-bottom: 12px; line-height: 0; }}
+      video {{ width: 100%; max-height: 420px; display: block; background: #000; margin: 0 auto; }}
+      .marker {{ position: absolute; border: 3px solid {MARKER_COLOR}; display: none; pointer-events: none; }}
+      .marker-label {{ position: absolute; bottom: 100%; left: -3px; background: {MARKER_COLOR}; color: #fff;
+                        font-size: 12px; font-weight: 600; padding: 2px 6px; white-space: nowrap; }}
+      .plist {{ max-height: 320px; overflow-y: auto; border: 1px solid #E2E8EE; border-radius: 8px; }}
+      .prow {{ display: flex; align-items: center; gap: 10px; padding: 8px 12px; font-size: 14px;
+               border-bottom: 1px solid #E2E8EE; cursor: pointer; }}
+      .prow:last-child {{ border-bottom: none; }}
+      .prow:hover {{ background: #F4F6F8; }}
+      .prow.active {{ background: #E1F5EE; }}
+      .pname {{ flex: 1; font-weight: 600; color: #16202A; }}
+      .ppill {{ font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }}
+      .pts {{ color: #94A3B0; font-variant-numeric: tabular-nums; font-size: 12px; min-width: 34px; text-align: right; }}
+    </style>
+    <script>
+      const SIGNS = {json.dumps(signs)};
+      const video = document.getElementById('rv');
+      const marker = document.getElementById('marker');
+      const label = document.getElementById('marker-label');
+
+      function seekTo(i) {{
+        const s = SIGNS[i];
+        video.currentTime = s.time;
+        video.pause();
+        marker.style.left = (s.x * 100) + '%';
+        marker.style.top = (s.y * 100) + '%';
+        marker.style.width = (s.w * 100) + '%';
+        marker.style.height = (s.h * 100) + '%';
+        label.textContent = s.name + ' ' + s.confidence_pct + '%';
+        marker.style.display = 'block';
+        document.querySelectorAll('.prow').forEach(function(el) {{ el.classList.remove('active'); }});
+        document.getElementById('prow-' + i).classList.add('active');
+      }}
+
+      video.addEventListener('play', function() {{ marker.style.display = 'none'; }});
+    </script>
+    """
+    components.html(html, height=780, scrolling=True)
 
 
 st.markdown('<div class="signal-logo">Signal</div>', unsafe_allow_html=True)
@@ -262,15 +352,27 @@ if st.session_state.stage == "upload":
         wd = workdir()
         try:
             if uploaded is not None:
-                video_path = wd / uploaded.name
-                video_path.write_bytes(uploaded.getbuffer())
+                raw_path = wd / uploaded.name
+                raw_path.write_bytes(uploaded.getbuffer())
             else:
                 with st.spinner("Fetching the video..."):
-                    video_path = download_from_link(link, wd)
+                    raw_path = download_from_link(link, wd)
+
+            _, _, _, _, raw_duration = get_video_meta(raw_path)
+            cap_message = None
+            if raw_duration > MAX_PROCESS_SECONDS:
+                cap_message = (
+                    f"This video is {fmt_time(raw_duration)} long -- scanning the first "
+                    f"{fmt_time(MAX_PROCESS_SECONDS)} to keep the demo responsive."
+                )
+
+            with st.spinner("Preparing the video..."):
+                clip_path = prepare_canonical_clip(raw_path, wd)
         except Exception as e:
             st.error(f"Couldn't load that video: {e}")
         else:
-            st.session_state.video_path = str(video_path)
+            st.session_state.video_path = str(clip_path)
+            st.session_state.cap_message = cap_message
             st.session_state.stage = "scanning"
             st.rerun()
 
@@ -318,15 +420,8 @@ elif st.session_state.stage == "done":
             unsafe_allow_html=True,
         )
 
-        st.markdown("**All signs found**")
-        for r in sorted(reports, key=lambda r: r["first_seen_s"]):
-            st.markdown(
-                f'<div class="feed-row"><span class="name">{r["name"]}</span>'
-                f'{pill_html(r["category"], r["category"])}'
-                f'<span class="ts">{r["confidence"] * 100:.0f}%</span>'
-                f'<span class="ts">{fmt_time(r["first_seen_s"])}</span></div>',
-                unsafe_allow_html=True,
-            )
+        st.markdown("**All signs found** — click a sign to jump the video to that moment")
+        render_interactive_player(Path(st.session_state.video_path), reports)
 
         report_df = pd.DataFrame([
             {

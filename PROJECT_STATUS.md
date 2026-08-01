@@ -239,15 +239,25 @@ deck), `video_detection/README.md` (video detection detail).
   detector/classifier/tracker and `process_video.py`'s own constants
   read-only). Three distinct UI directions were mocked up and shown to
   the user first; **"Signal"** (clean light dashboard) was chosen and
-  built. Upload a video or paste a link, watch a live-updating
-  detection feed while it scans, get a trip report (stat cards,
-  category breakdown, most-common-sign callout, full sign list, CSV
-  download) at the end, "New video" to reset. Capped at 90s of
+  built. Upload a video or paste a link; the source is trimmed to the
+  processing cap and transcoded to browser-playable H.264 up front (via
+  `imageio-ffmpeg`'s bundled binary, no system ffmpeg needed) so the
+  *same* clip is used for both detection and playback. While it scans,
+  the video actually plays (autoplay, muted) with a live-updating
+  detection feed alongside it; at the end, a trip report (stat cards,
+  category breakdown, most-common-sign callout, CSV download) plus an
+  **interactive sign list** where clicking any sign seeks the video to
+  that exact moment, pauses it, and draws a marker box with its
+  name/confidence — built as a self-contained HTML/JS component since
+  Streamlit's own widgets don't support that kind of cross-element
+  interactivity. "New video" resets everything. Capped at 90s of
   processing and 10 minutes of link-download to stay responsive on
   Streamlit Community Cloud's free tier; the trained model file is
   committed to the repo (deliberate exception to the usual gitignore
   rule) since the free host builds straight from GitHub. Tested
-  end-to-end locally against a real video. Full detail in
+  end-to-end locally against a real video, including direct JS
+  inspection confirming the seek/pause/marker behavior actually works
+  (not just visual spot-checking). Full detail in
   `streamlit_app/README.md` and `ROADMAP.md` section 10.
 
 ## Stage 9 video detection results

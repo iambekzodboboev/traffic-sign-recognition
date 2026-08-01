@@ -2,8 +2,10 @@
 
 A public-facing web app for the video sign-detection pipeline built in
 `video_detection/` (stage 9). Upload a driving video or paste a link,
-watch signs get logged live as it scans, then get a full trip report
-when it's done.
+watch the video actually play while signs get logged live as it scans,
+then get a full trip report when it's done — click any sign in the
+report and the video jumps to that exact moment, paused, with a box and
+name/confidence label marking it.
 
 **Isolation, same rule as `video_detection/` itself**: this is a
 separate component. It reuses `video_detection/detector.py`,
@@ -63,3 +65,26 @@ present (both already in the repo — see note below on the model file).
   for fast-moving signs (see `ROADMAP.md` section 9.4). The response to
   "keep this fast on weaker hardware" is the duration cap above, not a
   lower sample rate, so tracking quality doesn't regress.
+- **The uploaded/downloaded video is trimmed and transcoded before
+  anything else happens** (`prepare_canonical_clip` in `app.py`, via
+  `imageio-ffmpeg` — a static ffmpeg binary bundled in the pip package,
+  no system `ffmpeg` install needed, works identically locally and on
+  Streamlit Cloud). Two reasons at once: most source videos (arbitrary
+  phone recordings, Instagram/YouTube downloads) aren't guaranteed to
+  use a browser-playable codec, and this also produces the single
+  trimmed clip that both the detection pass *and* on-page playback use
+  — so a report entry's timestamp always matches the same clip the
+  player is scrubbing, with no separate re-encode step to drift out of
+  sync.
+- **The results-view video player is a genuinely interactive HTML/JS
+  component** (`render_interactive_player` in `app.py`, via
+  `st.components.v1.html`), not a plain Streamlit video widget — clicking
+  a sign in the list calls `video.currentTime = ...` and `video.pause()`,
+  then draws a positioned marker box using that sign's detection box
+  (captured as *fractions* of frame width/height during the scan, so it
+  stays correctly placed regardless of how large the player renders).
+  The clip is embedded directly as a base64 data URI rather than served
+  from a file path, since Streamlit doesn't have a built-in static file
+  server for arbitrary per-session temp files — kept small enough for
+  this (a few MB after the trim+transcode above) by capping both
+  duration and output resolution.

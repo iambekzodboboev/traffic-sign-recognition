@@ -571,11 +571,12 @@ end, start over with one click.
       constants/helpers (`SAMPLE_FPS`, `CONFIDENCE_THRESHOLD`,
       `_clip_box`) read-only, no detection/classification/tracking
       logic duplicated. Upload a file or paste a link; while it scans,
-      a live-updating preview frame, progress bar, and growing history
-      feed are shown (not a blank progress bar); when done, a trip
-      report (stat cards, category breakdown, most-common-sign callout,
-      full sign list with timestamps, CSV download) plus a "New video"
-      button that clears everything and starts over.
+      the actual video plays (autoplay, muted) with a progress bar and
+      growing history feed alongside it (not a blank progress bar and
+      not a jarring still-frame slideshow); when done, a trip report
+      (stat cards, category breakdown, most-common-sign callout, an
+      interactive sign list with timestamps, CSV download) plus a
+      "New video" button that clears everything and starts over.
 - [x] 10.3 Scope calls for public free-tier hosting, made explicitly
       rather than left implicit:
       - Video processing is capped at 90 seconds regardless of source
@@ -603,9 +604,48 @@ end, start over with one click.
       upload path also uses): live scan, live feed, trip report, CSV
       download, and "New video" reset (including that it actually frees
       the temp video file) all verified working against a real video.
+- [x] 10.5 Real-playback + interactive results player, added from
+      direct user feedback after trying the app (three concrete asks:
+      the video should actually be playing while stats are recorded,
+      clicking a found sign should jump the player to that moment and
+      pause, and the sign should be marked there by name and
+      confidence). Required a real architecture change, not just UI
+      polish:
+      - Added `prepare_canonical_clip()`, which trims the source to
+        `MAX_PROCESS_SECONDS` and transcodes it to browser-playable
+        H.264 via `imageio-ffmpeg` (a static ffmpeg binary bundled in
+        the pip package -- confirmed working with no system `ffmpeg`
+        install, so it needs nothing extra on Streamlit Cloud either).
+        This single canonical clip is now what both the detection pass
+        *and* on-page playback use, so a report entry's timestamp is
+        guaranteed to match what the player shows at that same time --
+        no separate re-encode step that could drift the two apart.
+      - The scanning view now shows the real clip playing
+        (`st.video(..., autoplay=True, muted=True)`) instead of a
+        still-image slideshow, with the live feed updating alongside
+        it as before.
+      - Alongside the existing per-track first-seen *timestamp*
+        capture, also capture each track's first-seen detection box as
+        *fractions* of frame width/height (`x/width`, `y/height`, etc.)
+        -- resolution-independent, so a marker stays correctly
+        positioned no matter how large the player renders.
+      - The results view's sign list is now a single self-contained
+        HTML/JS component (`st.components.v1.html`, not plain Streamlit
+        markup), embedding the clip as a base64 data URI (Streamlit has
+        no built-in static file server for arbitrary per-session temp
+        files) alongside a clickable list. Clicking a row calls
+        `video.currentTime = ...` + `.pause()`, then draws a marker box
+        at the stored fractional position with a name+confidence label;
+        the marker hides again once the video is un-paused.
+      - Verified via direct JS inspection in the running app (not just
+        visually): confirmed real seek (`currentTime` lands on the
+        clicked sign's exact timestamp), real pause, correct marker
+        position/size, correct name+confidence label text, and that the
+        marker disappears again once playback resumes.
 
 **Code map**: `streamlit_app/app.py` (the whole app) +
 `streamlit_app/requirements.txt` (its own deps, incl. a CPU-only
-PyTorch build via `--extra-index-url`) + `.streamlit/config.toml` (the
-Signal color theme) + `streamlit_app/README.md` (deploy steps and the
-scope decisions above, in more detail).
+PyTorch build via `--extra-index-url`, and `imageio-ffmpeg` for the
+canonical-clip step) + `.streamlit/config.toml` (the Signal color
+theme) + `streamlit_app/README.md` (deploy steps and the scope
+decisions above, in more detail).
