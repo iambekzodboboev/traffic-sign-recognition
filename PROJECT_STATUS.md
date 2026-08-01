@@ -250,7 +250,15 @@ deck), `video_detection/README.md` (video detection detail).
   that exact moment, pauses it, and draws a marker box with its
   name/confidence — built as a self-contained HTML/JS component since
   Streamlit's own widgets don't support that kind of cross-element
-  interactivity. "New video" resets everything. Capped at 90s of
+  interactivity. **The same marker also fires automatically off the
+  video's own playback clock** (its `timeupdate` event), so signs get
+  boxed and labeled in real time as the video plays with no click
+  needed — the honest answer to "can signs be recognized during
+  playback" turned out to be "not live server-side detection paced to
+  live playback" (no reliable way to do that in Streamlit), but
+  "replay the already-known results in exact sync with the video's
+  real clock," which is both achievable and frame-accurate. "New video"
+  resets everything. Capped at 90s of
   processing and 10 minutes of link-download to stay responsive on
   Streamlit Community Cloud's free tier; the trained model file is
   committed to the repo (deliberate exception to the usual gitignore

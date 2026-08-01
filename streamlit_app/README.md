@@ -83,6 +83,15 @@ present (both already in the repo — see note below on the model file).
   then draws a positioned marker box using that sign's detection box
   (captured as *fractions* of frame width/height during the scan, so it
   stays correctly placed regardless of how large the player renders).
+  **The same marker is also driven automatically off the video's own
+  `timeupdate` event** — as the video plays, each sign gets boxed and
+  labeled right as the playhead reaches it, no click needed. This is
+  deliberately *not* the same as live server-side recognition keeping
+  pace with live playback (there's no reliable way to pace a Python
+  detection loop to a browser's real-time video clock in Streamlit) —
+  detection already finished during the scan, and replaying it against
+  the video's real clock is both simpler and exactly accurate, unlike
+  trying to race the two live.
   The clip is embedded directly as a base64 data URI rather than served
   from a file path, since Streamlit doesn't have a built-in static file
   server for arbitrary per-session temp files — kept small enough for

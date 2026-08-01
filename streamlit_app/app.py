@@ -258,7 +258,17 @@ def render_interactive_player(clip_path, reports):
     """A single self-contained HTML component: the clip, plus a clickable
     list of every sign found. Clicking a row seeks the video to that
     moment, pauses it, and draws a box + name/confidence label over the
-    sign, using the (x, y, w, h) fractions captured during the scan."""
+    sign, using the (x, y, w, h) fractions captured during the scan.
+
+    The same marker is also driven automatically off the video's own
+    playback clock (its `timeupdate` event) -- as the video plays, each
+    sign gets boxed and labeled right as the playhead reaches it, no
+    click needed. This is what actually gives a "recognized live"
+    experience: true frame-accurate sync isn't achievable between a
+    live server-side detection loop and live browser playback (nothing
+    paces one to the other), but here the detection has already
+    happened and its timestamps are exact, so replaying against the
+    video's real clock is both simpler and more accurate."""
     clip_b64 = base64.b64encode(Path(clip_path).read_bytes()).decode("ascii")
 
     signs = []
@@ -284,7 +294,7 @@ def render_interactive_player(clip_path, reports):
 
     html = f"""
     <div class="player-wrap">
-      <video id="rv" controls playsinline>
+      <video id="rv" controls playsinline autoplay muted>
         <source src="data:video/mp4;base64,{clip_b64}" type="video/mp4">
       </video>
       <div id="marker" class="marker"><span id="marker-label" class="marker-label"></span></div>
@@ -309,14 +319,13 @@ def render_interactive_player(clip_path, reports):
     </style>
     <script>
       const SIGNS = {json.dumps(signs)};
+      const MARKER_WINDOW = 2.0;
       const video = document.getElementById('rv');
       const marker = document.getElementById('marker');
       const label = document.getElementById('marker-label');
+      let manualIndex = null;
 
-      function seekTo(i) {{
-        const s = SIGNS[i];
-        video.currentTime = s.time;
-        video.pause();
+      function showMarker(s, i) {{
         marker.style.left = (s.x * 100) + '%';
         marker.style.top = (s.y * 100) + '%';
         marker.style.width = (s.w * 100) + '%';
@@ -324,10 +333,43 @@ def render_interactive_player(clip_path, reports):
         label.textContent = s.name + ' ' + s.confidence_pct + '%';
         marker.style.display = 'block';
         document.querySelectorAll('.prow').forEach(function(el) {{ el.classList.remove('active'); }});
-        document.getElementById('prow-' + i).classList.add('active');
+        if (i !== null) document.getElementById('prow-' + i).classList.add('active');
       }}
 
-      video.addEventListener('play', function() {{ marker.style.display = 'none'; }});
+      function hideMarker() {{
+        marker.style.display = 'none';
+        document.querySelectorAll('.prow').forEach(function(el) {{ el.classList.remove('active'); }});
+      }}
+
+      function seekTo(i) {{
+        manualIndex = i;
+        video.currentTime = SIGNS[i].time;
+        video.pause();
+        showMarker(SIGNS[i], i);
+      }}
+
+      // Drives the marker off the video's own playback clock: whichever
+      // sign's timestamp the playhead most recently passed (within
+      // MARKER_WINDOW seconds) gets marked automatically, so signs get
+      // boxed and labeled in real time as the video plays -- no click
+      // needed. Recomputed from currentTime on every tick, so it's
+      // correct whether playing forward, paused, or manually scrubbed.
+      video.addEventListener('timeupdate', function() {{
+        if (video.paused) return;
+        manualIndex = null;
+        const t = video.currentTime;
+        let bestI = null, bestS = null;
+        for (let i = 0; i < SIGNS.length; i++) {{
+          const s = SIGNS[i];
+          if (s.time <= t && t - s.time < MARKER_WINDOW) {{ bestI = i; bestS = s; }}
+        }}
+        if (bestS) {{ showMarker(bestS, bestI); }} else {{ hideMarker(); }}
+      }});
+
+      video.addEventListener('seeked', function() {{
+        if (manualIndex !== null) return;
+        hideMarker();
+      }});
     </script>
     """
     components.html(html, height=780, scrolling=True)

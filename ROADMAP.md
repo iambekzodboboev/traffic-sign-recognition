@@ -642,6 +642,30 @@ end, start over with one click.
         clicked sign's exact timestamp), real pause, correct marker
         position/size, correct name+confidence label text, and that the
         marker disappears again once playback resumes.
+- [x] 10.6 Follow-up from the user directly asking "can we recognize
+      signs during video plays?" — answered honestly first: no, not
+      truly, since the scanning view's video and the server-side
+      detection loop are two independent processes with nothing pacing
+      one to the other (detection usually finishes *faster* than real
+      playback on this dev machine). Fixed by making the *already-known*
+      results genuinely replay in sync with the video's real clock,
+      rather than attempting to pace live detection to live playback
+      (not reliably achievable in Streamlit's architecture, and
+      dependent on host CPU speed anyway): the results-view marker from
+      10.5 is now also driven automatically by the video's own
+      `timeupdate` event, not only by clicking a row — whichever sign's
+      timestamp the playhead most recently passed (within a small
+      window) gets boxed and labeled automatically as the video plays,
+      recomputed fresh from `currentTime` on every tick so it's correct
+      whether playing forward, paused, or manually scrubbed. The
+      results-view video now also autoplays (muted) so this is visible
+      immediately without needing to click play first. Verified via
+      direct JS inspection of the live app: confirmed the marker and
+      the corresponding list row highlight both light up correctly,
+      un-clicked, exactly as real playback reaches that sign's
+      timestamp, and that manually scrubbing the video (not via a row
+      click) correctly clears a stale marker rather than leaving one
+      pinned to the wrong sign.
 
 **Code map**: `streamlit_app/app.py` (the whole app) +
 `streamlit_app/requirements.txt` (its own deps, incl. a CPU-only
