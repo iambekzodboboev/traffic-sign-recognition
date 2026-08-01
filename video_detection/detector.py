@@ -19,6 +19,15 @@ SEARCH_REGION_TOP_FRACTION = 0.58
 
 MIN_AREA_FRACTION = 0.0007  # of full-frame area; filters out tiny color noise
 
+# Real-world testing found boxes sometimes reach slightly past the actual
+# sign into whatever is next to it (e.g. a car mirror right next to a sign).
+# Shrinking each box inward a bit trades a little bit of the sign's own
+# border for less chance of dragging in a neighboring object. This does NOT
+# fix contamination from something drawn *on top of* the sign itself (e.g. a
+# semi-transparent watermark) -- those pixels are inside the sign's own
+# region, not outside it, so no box adjustment removes them.
+BOX_SHRINK_MARGIN = 0.05
+
 
 def _shape_score(contour):
     """Returns True if a contour's shape roughly matches a real sign shape
@@ -75,8 +84,15 @@ def detect_candidate_boxes(frame):
             continue
         if not _shape_score(c):
             continue
+        x, y, bw, bh = _shrink_box(x, y, bw, bh)
         boxes.append((x, y, bw, bh))  # y already in full-frame coords (region starts at row 0)
     return boxes
+
+
+def _shrink_box(x, y, bw, bh, margin=BOX_SHRINK_MARGIN):
+    dx = int(bw * margin)
+    dy = int(bh * margin)
+    return x + dx, y + dy, bw - 2 * dx, bh - 2 * dy
 
 
 if __name__ == "__main__":
