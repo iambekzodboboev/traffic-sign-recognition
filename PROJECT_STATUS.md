@@ -6,9 +6,9 @@ Traffic Sign Recognition
 
 ## Current stage
 
-Stages 0-7 and 9 (9.1-9.6) **complete**. Stage 8 nearly complete: 8.1 and
-8.3 done, only 8.2 (`README.md` update) remains. See `ROADMAP.md` for the
-full step-by-step plan.
+Stages 0-7, 9 (9.1-9.6), and 10 (public Streamlit web demo) **complete**.
+Stage 8 nearly complete: 8.1 and 8.3 done, only 8.2 (`README.md` update)
+remains. See `ROADMAP.md` for the full step-by-step plan.
 
 ## Defense summary
 
@@ -234,6 +234,21 @@ deck), `video_detection/README.md` (video detection detail).
   `video_detection/README.md` (9.6). Full details and all findings in
   `video_detection/README.md` and `ROADMAP.md` section 9; headline
   results in the section below.
+- **Stage 10 (public Streamlit web demo) complete** (new, isolated
+  component at `streamlit_app/`, reuses `video_detection/`'s
+  detector/classifier/tracker and `process_video.py`'s own constants
+  read-only). Three distinct UI directions were mocked up and shown to
+  the user first; **"Signal"** (clean light dashboard) was chosen and
+  built. Upload a video or paste a link, watch a live-updating
+  detection feed while it scans, get a trip report (stat cards,
+  category breakdown, most-common-sign callout, full sign list, CSV
+  download) at the end, "New video" to reset. Capped at 90s of
+  processing and 10 minutes of link-download to stay responsive on
+  Streamlit Community Cloud's free tier; the trained model file is
+  committed to the repo (deliberate exception to the usual gitignore
+  rule) since the free host builds straight from GitHub. Tested
+  end-to-end locally against a real video. Full detail in
+  `streamlit_app/README.md` and `ROADMAP.md` section 10.
 
 ## Stage 9 video detection results
 
@@ -508,8 +523,11 @@ limitation if asked during defense.
 
 ## Current task
 
-Stage 9 (9.1-9.6) and stage 8.1/8.3 are now both complete. The only
-remaining open item in the whole project is 8.2.
+Stage 9 (9.1-9.6), stage 10 (Streamlit web demo), and stage 8.1/8.3 are
+now all complete. The only remaining open item in the whole project is
+8.2 (`README.md`) — and actually deploying the Streamlit app to
+share.streamlit.io, which only the user can do (needs their own GitHub
+login).
 
 ## Next
 

@@ -25,6 +25,9 @@ datasets/
 *.pth
 *.onnx
 *.pkl
+# Exception: the trained classifier is committed on purpose so the public
+# Streamlit Cloud deploy (which builds straight from this repo) has it.
+!models/resnet18_transfer_15ep.pt
 
 # Experiment tracking
 mlruns/

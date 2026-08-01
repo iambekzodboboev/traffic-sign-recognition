@@ -1,0 +1,11 @@
+# CPU-only PyTorch build (much smaller/faster to install than the default
+# CUDA build, and Streamlit Community Cloud has no GPU anyway).
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.13.0
+torchvision==0.28.0
+
+streamlit==1.60.0
+opencv-python-headless==5.0.0.93
+pandas==2.3.3
+pillow==12.2.0
+yt-dlp==2026.7.4

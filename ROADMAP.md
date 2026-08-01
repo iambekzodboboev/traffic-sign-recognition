@@ -550,3 +550,62 @@ anything built so far — it introduces a whole additional ML sub-field
 (object detection), a new small labeled validation set, and real
 video-processing engineering. It's appropriately a future/stretch phase,
 not a quick follow-on task.
+
+## 10. Public Web Demo (Streamlit) — complete
+
+**Why this exists**: stage 9's `video_detection/` pipeline only ran
+locally from a terminal. The user wanted a public, free-hosted site
+anyone could open and try — upload a driving video or paste a link,
+watch signs get logged live as it scans, get a full trip report at the
+end, start over with one click.
+
+- [x] 10.1 Design the UI. Three distinct visual directions were mocked
+      up (dark dash-cam HUD, warm driver's-logbook, clean light
+      dashboard) and shown to the user to pick from before writing any
+      app code. **Chosen: "Signal"** — the clean light dashboard, picked
+      for being the easiest for a random visitor to understand in ten
+      seconds, which matters most for a link anyone can click.
+- [x] 10.2 Build the app. `streamlit_app/app.py` — isolated component,
+      same rule as `video_detection/` itself: reuses `detector.py`,
+      `classifier.py`, `tracker.py`, and `process_video.py`'s own
+      constants/helpers (`SAMPLE_FPS`, `CONFIDENCE_THRESHOLD`,
+      `_clip_box`) read-only, no detection/classification/tracking
+      logic duplicated. Upload a file or paste a link; while it scans,
+      a live-updating preview frame, progress bar, and growing history
+      feed are shown (not a blank progress bar); when done, a trip
+      report (stat cards, category breakdown, most-common-sign callout,
+      full sign list with timestamps, CSV download) plus a "New video"
+      button that clears everything and starts over.
+- [x] 10.3 Scope calls for public free-tier hosting, made explicitly
+      rather than left implicit:
+      - Video processing is capped at 90 seconds regardless of source
+        (`MAX_PROCESS_SECONDS`) — Streamlit Community Cloud's free tier
+        is one shared CPU with tight memory, so this keeps the live
+        scan responsive for every visitor, not just whoever's video
+        happens to be running.
+      - Link downloads are capped at 10 minutes before any download
+        starts (checked via a metadata-only probe, no download yet) —
+        rejects an obviously-too-long link fast instead of spending
+        bandwidth downloading something that would only ever be
+        partially processed anyway.
+      - Sampling stays at 4 fps, matching `process_video.py` exactly —
+        stage 9.4 found a lower sample rate breaks tracking continuity
+        for fast-moving signs; the response to "keep this fast on
+        weaker hardware" is the duration cap above, not a lower sample
+        rate, so tracking quality doesn't regress.
+      - The trained model (`models/resnet18_transfer_15ep.pt`, ~45MB)
+        is committed to the repo — a deliberate, one-time exception to
+        the project's usual "`*.pt` files are gitignored build
+        artifacts" rule, since Streamlit Cloud builds straight from
+        GitHub with no separate artifact-download step.
+- [x] 10.4 Tested end to end locally (file-download-via-link path,
+      which exercises the identical downstream processing code the
+      upload path also uses): live scan, live feed, trip report, CSV
+      download, and "New video" reset (including that it actually frees
+      the temp video file) all verified working against a real video.
+
+**Code map**: `streamlit_app/app.py` (the whole app) +
+`streamlit_app/requirements.txt` (its own deps, incl. a CPU-only
+PyTorch build via `--extra-index-url`) + `.streamlit/config.toml` (the
+Signal color theme) + `streamlit_app/README.md` (deploy steps and the
+scope decisions above, in more detail).
