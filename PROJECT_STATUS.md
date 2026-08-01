@@ -6,9 +6,70 @@ Traffic Sign Recognition
 
 ## Current stage
 
-Stage 9 — Real-World Video Detection, **complete** (9.1-9.6; stages 1-7
-also complete; stage 8 partially done — see below). See `ROADMAP.md` for
-the full step-by-step plan.
+Stages 0-7 and 9 (9.1-9.6) **complete**. Stage 8 nearly complete: 8.1 and
+8.3 done, only 8.2 (`README.md` update) remains. See `ROADMAP.md` for the
+full step-by-step plan.
+
+## Defense summary
+
+**Goal**: recognize traffic signs (200 classes, post-Soviet-states sign
+set) from a photo, served through a Telegram bot, then extended toward
+recognizing signs in real driving video.
+
+**Approach, stage by stage, and why**:
+- **Data audit (3)** surfaced two real risks before any model was
+  touched: moderate class imbalance (248-1,845 images/class) and a
+  data-leakage risk from near-duplicate video-burst frames.
+- **Preprocessing (4)** built a leakage-safe split by grouping
+  near-duplicate images (perceptual hashing), since filenames alone only
+  reliably identified ~10% of the dataset's groupings — then split by
+  group, never by individual image.
+- **Baseline (5)**: a from-scratch 3-conv-block CNN reached 87.84% val
+  accuracy. Confusion-matrix analysis found the real bottleneck wasn't
+  imbalance (correlation with class size ~ -0.124, essentially none) but
+  specific, visually-similar sign pairs being confused with each other.
+- **Model selection (6)**: swapping in a pretrained ResNet18 (same
+  pipeline, only the backbone changed) eliminated those exact confusions
+  and reached **99.37% held-out test accuracy**. This is targeted
+  evidence, not a generic accuracy bump — it specifically fixed the exact
+  confusions predicted by the stage 5 analysis, which is a harder pattern
+  to explain away as leakage than a uniform improvement would be.
+- **Demo (7)**: a Telegram bot serving the trained classifier, CPU-only,
+  with a confidence threshold that asks for a clearer photo below 60%
+  (added after a real low-confidence misclassification surfaced during
+  live testing).
+- **Video detection (9)**: extends the classifier to real driving footage
+  by adding a localization step in front of it — classical computer
+  vision (color + shape), chosen over a downloaded pretrained detector
+  after a direct side-by-side test showed it outperforming official
+  COCO-pretrained YOLOv8 on this exact task — plus cross-frame tracking
+  so the same physical sign isn't reported repeatedly. Tested against two
+  different real videos; found and documented real failure modes rather
+  than reporting only the successes (see below).
+
+**Headline numbers**: 99.37% test accuracy across 200 classes (random
+baseline 0.5%), test macro-F1 0.9937, worst-of-200-classes test accuracy
+88.46% — meaning strength is consistent across classes, not concentrated
+in a few frequent ones.
+
+**Honest limitations, worth stating directly if asked**:
+- Stage 4's near-duplicate deduplication isn't perfect — a stated, known
+  gap (see "Stage 4 known limitation" below), not hidden.
+- Stage 9's video pipeline has real, found failure modes: a channel
+  watermark or on-screen caption sitting on top of a sign can cause
+  confident misclassification; two sign faces stacked on one post can be
+  boxed together and confidently mislabeled as something unrelated; a box
+  that captures only a sign's icon (not its full multi-plate context) can
+  confuse near-visual-twin classes. All documented, not swept under the
+  rug — see `video_detection/README.md`.
+- Confidence scores are a much weaker trust signal on small/blurry video
+  crops than on the large, clean photos the bot was tested with.
+
+**Where the full detail lives**: this file (stage-by-stage results
+below), `ROADMAP.md` (the full staged plan and reasoning behind every
+decision), `Traffic_Sign_Recognition_Project_Report.docx` (narrative
+report), `Traffic_Sign_Recognition_Presentation.pptx` (defense slide
+deck), `video_detection/README.md` (video detection detail).
 
 ## Completed
 
@@ -142,14 +203,19 @@ the full step-by-step plan.
   photo, got back the correct sign name, category, confidence, and
   reference icon.
 - **Stage 7 (inference/demo workflow) fully complete.**
-- Stage 8.2/8.3 (partial) done: `Traffic_Sign_Recognition_Project_Report.docx`
+- Defense documents done: `Traffic_Sign_Recognition_Project_Report.docx`
   — a comprehensive, stage-by-stage narrative report covering the whole
   project (stages 0-7), organized around what was measured at each step,
   what it showed, and what decision followed from it, readable without
   needing to look at the code. Includes three charts generated from the
-  real data/results and the full results tables. `README.md` itself
-  hasn't been updated yet, and 8.1 (notebook/script cleanup) hasn't been
-  started.
+  real data/results and the full results tables.
+- **Stage 8.1 done**: scripts and `requirements.txt` confirmed accurate
+  (no changes needed); `02_data_audit_eda.ipynb` and
+  `03_preprocessing.ipynb` re-run locally against the dataset to attach
+  real, current outputs (previously code-only); `04_baseline_model.ipynb`
+  and `05_transfer_learning.ipynb` given a short note instead of a costly
+  GPU re-run. **Stage 8.3 done**: added a "Defense summary" section to
+  this file. `README.md` (8.2) is the only remaining item.
 - Also produced `Traffic_Sign_Recognition_Presentation.pptx` — a 13-slide,
   10-minute defense deck (demand → detailed methodology with real
   charts/stats → future vision: real-time video on a dash-cam device,
@@ -442,19 +508,15 @@ limitation if asked during defense.
 
 ## Current task
 
-Stage 9 is now fully complete (9.1-9.6). The remaining open thread is
-stage 8.1/8.3 (notebook/script cleanup, `README.md` update) — not yet
-started; ask the user before beginning it.
+Stage 9 (9.1-9.6) and stage 8.1/8.3 are now both complete. The only
+remaining open item in the whole project is 8.2.
 
 ## Next
 
-- 8.1 Clean up final notebooks/scripts, confirm `requirements.txt` is accurate
 - 8.2 Update `README.md` with how to reproduce and the main results (the
   project report `.docx` and presentation `.pptx` already cover this
   narratively, but `README.md` itself — the GitHub-facing doc — is
   still the original stub)
-- 8.3 Update `PROJECT_STATUS.md` to reflect full completion, prepare a
-  short defense summary
 
 ## Known problems / blockers
 

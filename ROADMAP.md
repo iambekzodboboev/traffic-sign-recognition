@@ -320,11 +320,30 @@ evaluated on Kaggle Notebooks, 99.37% held-out test accuracy.
 
 ## 8. Reproducibility, documentation, defense prep
 
-- [ ] 8.1 Clean up the final notebook/scripts and confirm `requirements.txt`
-      is accurate, so the whole pipeline can be rerun from scratch.
+- [x] 8.1 Clean up the final notebook/scripts and confirm `requirements.txt`
+      is accurate. **Findings**: scripts and `requirements.txt` were
+      already accurate (verified by scanning every `import` across
+      `scripts/`, `video_detection/`, `bot.py`, and all notebooks against
+      `requirements.txt` -- nothing missing, nothing stale) and notebooks
+      were already well-structured (no orphaned/duplicate cells). The one
+      real gap: `02_data_audit_eda.ipynb` and `03_preprocessing.ipynb`
+      had no saved execution outputs (code only, no results, when browsed
+      on GitHub). Fixed by re-running their actual analysis logic locally
+      against an extracted copy of the dataset zip (same data Colab would
+      download -- `scripts/capture_local_notebook_outputs.py` +
+      `scripts/attach_local_notebook_outputs.py`), then attaching the
+      real captured outputs, with a note on how/why. `04_baseline_model.ipynb`
+      and `05_transfer_learning.ipynb` were deliberately left without a
+      local re-run (they need real GPU training; re-running just for
+      cosmetic output capture would cost cloud quota for no new
+      information) -- each got a short note instead, pointing to
+      `PROJECT_STATUS.md`/MLflow for the real numbers.
 - [ ] 8.2 Update `README.md` with how to reproduce and the main results.
-- [ ] 8.3 Update `PROJECT_STATUS.md` to reflect completion and prepare a
-      short defense summary of what was done and why.
+- [x] 8.3 Update `PROJECT_STATUS.md` to reflect completion and prepare a
+      short defense summary of what was done and why. Added a "Defense
+      summary" section near the top of `PROJECT_STATUS.md` synthesizing
+      the whole project (goal, stage-by-stage approach and why, headline
+      numbers, honest limitations, pointers to full detail).
 
 ## 9. Real-World Video Detection — complete (9.1-9.6)
 
