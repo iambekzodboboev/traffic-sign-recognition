@@ -30,6 +30,14 @@ datasets/
 mlruns/
 wandb/
 
+# Video detection test clips / outputs (large binary files, not source)
+video_detection/test_videos/
+video_detection/output/
+*.mp4
+*.mov
+*.avi
+*.mkv
+
 # OS / editor junk
 .DS_Store
 Thumbs.db
