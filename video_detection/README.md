@@ -1,4 +1,4 @@
-# Video Detection (Stage 9 — proposed future phase)
+# Video Detection (Stage 9)
 
 Extends the finished classifier to real driving video (dashcam / "blogger
 driver" style footage), where a sign is small within a busy scene rather
@@ -13,6 +13,37 @@ anything built here.
 
 See `ROADMAP.md` section 9 in the repo root for the full staged plan and
 reasoning.
+
+## Quickstart
+
+Requirements: the project's usual environment (`pip install -r
+requirements.txt` from the repo root) plus the trained model at
+`models/resnet18_transfer_15ep.pt` (see the repo root `PROJECT_STATUS.md`
+if that file is missing — it's gitignored, not lost).
+
+Run on any driving video, from the repo root:
+
+    python video_detection/process_video.py path/to/your_video.mp4
+
+To try it quickly on just the first N seconds instead of the whole video:
+
+    python video_detection/process_video.py path/to/your_video.mp4 --seconds 20
+
+Add `--help` to see both options again at any time. Output goes to
+`video_detection/output/`:
+
+- `<name>_annotated.mp4` — the input video with detection boxes and
+  labels drawn on each sampled frame (green = confident; orange = below
+  the 60% confidence threshold, shown but flagged "unsure" rather than
+  hidden).
+- `<name>_annotated.txt` — a deduplicated list of tracked signs (one
+  line per physical sign seen across the video, not per frame).
+
+This repo doesn't ship a sample video (large binary files are gitignored
+here, same treatment as the dataset zip and model weights) — supply your
+own driving/dashcam video to try it. See "Status" below for what to
+expect and known limitations, so results can be read with the right
+expectations.
 
 ## Contents
 
@@ -37,9 +68,21 @@ reasoning.
 
 ## Status
 
-Steps 9.1-9.5 done (detector, classifier wiring, full video loop with
-frame sampling and tracking, tested against two different real videos).
-9.6 (packaging as a clean demo) is next.
+**Stage 9 complete (9.1-9.6).** Detector, classifier wiring, full video
+loop with frame sampling and tracking, tested against two different real
+videos, and packaged as the runnable demo described in "Quickstart"
+above (a clearer `--seconds` flag, `--help`, and a friendly error for a
+missing file, instead of the original raw positional-argument CLI).
+
+Deliberately **not** built, as an honest scope call rather than an
+oversight: a live-camera-feed variant. The roadmap flagged this as
+optional future work, not a course-project requirement. Not attempted
+or tested here, but the core `process_video()` function underneath is
+already agnostic to the source (it just calls `cv2.VideoCapture(...)`,
+which OpenCV can also point at a live camera index) — extending to live
+video later would mean loosening `main()`'s current file-must-exist CLI
+check for a camera-index case and testing that path for real, not
+redesigning the detect/classify/track pipeline itself.
 
 **Clip 1** — a real ~3-minute driving-test video: 738 sampled frames at
 4 fps, 76 distinct tracked signs reported after deduplication. Known

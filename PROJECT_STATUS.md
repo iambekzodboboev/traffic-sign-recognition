@@ -6,9 +6,9 @@ Traffic Sign Recognition
 
 ## Current stage
 
-Stage 9 — Real-World Video Detection, in progress (steps 9.1-9.5 done,
-9.6 remaining; stages 1-7 complete; stage 8 partially done — see below).
-See `ROADMAP.md` for the full step-by-step plan.
+Stage 9 — Real-World Video Detection, **complete** (9.1-9.6; stages 1-7
+also complete; stage 8 partially done — see below). See `ROADMAP.md` for
+the full step-by-step plan.
 
 ## Completed
 
@@ -158,13 +158,15 @@ See `ROADMAP.md` for the full step-by-step plan.
   PowerPoint COM automation → PDF → per-slide visual review, plus
   `markitdown` content checks and the pptx skill's schema validator (all
   passed).
-- **Stage 9.1-9.5 done** (new, isolated component at `video_detection/`,
-  never touches `bot.py` or anything it depends on — reuses the trained
-  classifier read-only via `scripts/predict_sign.py`). Extends the
-  finished classifier to real driving video, where a sign is small within
-  a busy scene rather than already cropped to fill the frame. Tested
-  against two different real videos (9.5). Full details and all findings
-  in `video_detection/README.md` and `ROADMAP.md` section 9; headline
+- **Stage 9 (9.1-9.6) complete** (new, isolated component at
+  `video_detection/`, never touches `bot.py` or anything it depends on —
+  reuses the trained classifier read-only via `scripts/predict_sign.py`).
+  Extends the finished classifier to real driving video, where a sign is
+  small within a busy scene rather than already cropped to fill the
+  frame. Tested against two different real videos (9.5), packaged as a
+  runnable demo with a `--help`/`--seconds` CLI and a Quickstart in
+  `video_detection/README.md` (9.6). Full details and all findings in
+  `video_detection/README.md` and `ROADMAP.md` section 9; headline
   results in the section below.
 
 ## Stage 9 video detection results
@@ -285,7 +287,19 @@ merged or partially-framed detections — recurred in a *different* form
 on clip 2). Two different real-world videos were enough to tell these
 apart without needing a much larger test set.
 
-**Not yet done**: 9.6 (package this as a clean, runnable demo).
+**Stage 9.6 — demo packaging, done.** `video_detection/process_video.py`
+already produced the annotated video + report (since 9.4); what was
+missing was a clean, easy-to-run interface: replaced raw `sys.argv`
+parsing with `argparse` (a real `--seconds` flag, `--help`, a friendly
+"video file not found" error), and added a "Quickstart" section to
+`video_detection/README.md` with exact commands and what the output
+means. Verified both `--help` and a real run still work after the CLI
+change. Deliberately **not** built, as a stated scope call rather than
+an oversight: a live-camera-feed variant — flagged as optional in
+`ROADMAP.md` section 9.6, not a course-project requirement.
+
+**Stage 9 (real-world video detection) is now fully complete, 9.1
+through 9.6.**
 
 ## Stage 6 model selection results
 
@@ -428,15 +442,12 @@ limitation if asked during defense.
 
 ## Current task
 
-Stage 9.6 — package `video_detection/` as a clean, documented, runnable
-demo, the last step of stage 9. Stage 8.1/8.3 (notebook/script cleanup,
-`README.md` update) remains a separate open thread, not yet started.
+Stage 9 is now fully complete (9.1-9.6). The remaining open thread is
+stage 8.1/8.3 (notebook/script cleanup, `README.md` update) — not yet
+started; ask the user before beginning it.
 
 ## Next
 
-- Stage 9.6 — package `video_detection/` as a clean, documented,
-  runnable demo (video file in, annotated video + report out; optionally
-  a live-camera-feed variant)
 - 8.1 Clean up final notebooks/scripts, confirm `requirements.txt` is accurate
 - 8.2 Update `README.md` with how to reproduce and the main results (the
   project report `.docx` and presentation `.pptx` already cover this

@@ -1,12 +1,17 @@
-"""Stage 9.4 -- process a whole video: sample frames (not every one), detect
-and classify signs in each sampled frame, and write an annotated output
-video. Still fully separate from the Telegram bot -- reuses the trained
-classifier read-only via classifier.py, never touches bot.py.
+"""Stage 9.4/9.6 -- process a whole video: sample frames (not every one),
+detect and classify signs in each sampled frame, and write an annotated
+output video. Still fully separate from the Telegram bot -- reuses the
+trained classifier read-only via classifier.py, never touches bot.py.
 
-Usage:
-    python video_detection/process_video.py path/to/video.mp4 [max_seconds]
+Demo usage (run from anywhere, e.g. the project root):
+    python video_detection/process_video.py path/to/video.mp4
+    python video_detection/process_video.py path/to/video.mp4 --seconds 20
+
+Output: an annotated .mp4 (boxes + labels drawn on each sampled frame)
+and a .txt report of deduplicated tracked signs, both written to
+video_detection/output/.
 """
-import sys
+import argparse
 import time
 from pathlib import Path
 
@@ -133,17 +138,25 @@ def process_video(input_path, output_path, max_seconds=None):
     print(f"Saved tracked-sign report to {report_path}")
 
 
-if __name__ == "__main__":
-    if len(sys.argv) not in (2, 3):
-        print("Usage: python video_detection/process_video.py path/to/video.mp4 [max_seconds]")
-        sys.exit(1)
+def main():
+    parser = argparse.ArgumentParser(
+        description="Detect and classify traffic signs in a driving video, "
+                     "and write an annotated copy plus a text report.")
+    parser.add_argument("video", type=Path, help="path to an input video file (e.g. .mp4)")
+    parser.add_argument("--seconds", type=float, default=None,
+                         help="only process the first N seconds (default: whole video)")
+    args = parser.parse_args()
 
-    input_path = Path(sys.argv[1])
-    max_seconds = float(sys.argv[2]) if len(sys.argv) == 3 else None
+    if not args.video.exists():
+        parser.error(f"video file not found: {args.video}")
 
     output_dir = Path(__file__).resolve().parent / "output"
     output_dir.mkdir(exist_ok=True)
-    suffix = f"_first{int(max_seconds)}s" if max_seconds else ""
-    output_path = output_dir / f"{input_path.stem}_annotated{suffix}.mp4"
+    suffix = f"_first{int(args.seconds)}s" if args.seconds else ""
+    output_path = output_dir / f"{args.video.stem}_annotated{suffix}.mp4"
 
-    process_video(input_path, output_path, max_seconds)
+    process_video(args.video, output_path, args.seconds)
+
+
+if __name__ == "__main__":
+    main()

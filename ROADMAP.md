@@ -326,7 +326,7 @@ evaluated on Kaggle Notebooks, 99.37% held-out test accuracy.
 - [ ] 8.3 Update `PROJECT_STATUS.md` to reflect completion and prepare a
       short defense summary of what was done and why.
 
-## 9. Real-World Video Detection (in progress — steps 9.1-9.4 done)
+## 9. Real-World Video Detection — complete (9.1-9.6)
 
 **Why this is a new phase, not a tweak**: the trained classifier (stages
 5-6) and the bot (stage 7) both assume the input is already a close, clean
@@ -502,16 +502,22 @@ never modified and still works exactly as it did at the end of stage 7.
          real sign) was picked up at a moderate 65% confidence — same
          pattern as clip 1's non-sign-object finding, confidence
          thresholding alone doesn't catch it.
-- [ ] 9.6 Package a demo: a script that takes a video file (or a live
-      camera feed) and produces an annotated output — boxes and labels
-      drawn on the video, or the live "which rule is active right now"
-      style already sketched conceptually in the project presentation's
-      future-vision slide. `process_video.py` already does the video-in,
-      annotated-video-out part; what's left is packaging it as a clean,
-      documented, easy-to-run demo (plus optionally the "live camera
-      feed" variant). This is the concrete bridge from "a model that
-      classifies photos" to the dash-cam driving-assistant concept
-      already pitched as future work.
+- [x] 9.6 Package a demo. `video_detection/process_video.py` already did
+      the video-in, annotated-video-out part (since 9.4); what was left
+      was making it clean and easy to run: replaced the raw positional
+      `sys.argv` parsing with `argparse` (`--seconds` instead of a bare
+      optional positional, `--help`, a friendly "video file not found"
+      error instead of an unhandled `cv2` failure), and added a
+      "Quickstart" section to `video_detection/README.md` with the exact
+      commands, expected output files, and what the box colors mean.
+      Verified both the help text and a real run still work after the
+      CLI change. Deliberately **not** built, as a stated scope call
+      (see `video_detection/README.md`): a live-camera-feed variant —
+      flagged as optional in this same roadmap entry, not a course-
+      project requirement; the underlying `process_video()` function is
+      already source-agnostic in principle, but wiring and testing a
+      live camera path is left as explicit future work, not attempted
+      here.
 
 **Code map for this phase** (all in `video_detection/`, isolated from
 the bot): `detector.py` (localization) → `classifier.py` (wires a crop
