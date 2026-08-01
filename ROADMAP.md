@@ -418,10 +418,9 @@ never modified and still works exactly as it did at the end of stage 7.
       fast-moving sign into 2 and 1 clean continuous tracks.
       **Full-video result**: 738 sampled frames (~4 fps, 172s video) in
       39 seconds, 76 deduplicated tracked signs reported.
-- [~] 9.5 Test honestly on real footage and document what breaks —
-      substantial honest testing already done throughout 9.1-9.4 (not a
-      separate pass yet). Confirmed, specific findings, each verified by
-      direct inspection rather than assumed:
+- [x] 9.5 Test honestly on real footage and document what breaks.
+      Findings from the first clip (9.1-9.4), each verified by direct
+      inspection rather than assumed:
       1. Correctly detects and classifies sign types never
          individually hand-tested before (e.g. "Steep ascent 12%";
          "Curve right" held correctly across 85 consecutive sampled
@@ -443,9 +442,66 @@ never modified and still works exactly as it did at the end of stage 7.
          painted lane arrow on the pavement) — but the crops are tiny
          and blurry, and a "confident" score means less on a crop that
          degraded than on the large, clean crops tested earlier.
-      Not yet done: a dedicated pass against a *second*, different
-      video (different lighting/route/camera mount) to check how much
-      of the above is specific to this one test clip.
+
+      **Second-video pass, done** — a public Instagram reel from a
+      driving-school account (`avtoshkola_dlya_jenshin`), downloaded via
+      `yt-dlp` with the user's explicit direction, portrait 720x1280,
+      25fps, 123.5s, stored as
+      `video_detection/test_videos/driving_clip_02.mp4`. Different
+      lighting, route, and camera mount from clip 1, and (confirmed by
+      the video's own on-screen station captions, e.g. "3.SVETOFOR",
+      "7.TEMIR YO'L KESISHMASI") filmed at a different, larger closed
+      driving-test facility ("avtodrom") with many numbered practice
+      stations, each marked with real signage — explaining why this
+      clip produced far more tracked signs per second than clip 1 (116
+      tracks / 123.5s vs. 76 / 172s) rather than indicating noise.
+      Full run: 515 sampled frames (~4 fps) in 22.4s.
+
+      Findings, each confirmed by pulling and looking at the actual
+      crop/frame (not assumed from the confidence number alone), per
+      gotcha #20:
+      1. **STOP signs and plain "P" parking signs replicate clip 1's
+         good behavior**: tracked correctly and consistently across the
+         approach (STOP: 100% -> 70% as the car closed in; "P": 100% on
+         a clean single-icon crop) — confirms clip 1's finding that
+         confidence tracks correctness closely on large, clean, single-
+         subject crops isn't a fluke of that one video.
+      2. **New failure mode, not seen in clip 1: a confidently-wrong
+         merge, not a low-confidence one.** This facility mounts two
+         different sign faces stacked vertically on one post (e.g. a
+         pedestrian-crossing icon directly above a left-turn mandatory-
+         arrow icon). The detector boxes both as a single region, and
+         the classifier confidently (97-98%) mislabels the combined
+         shape as an unrelated class ("Car washing") — reproducibly, at
+         more than one course station. This means clip 1's finding #3
+         above ("merged boxes reliably show up as low confidence, so
+         the safety net holds") is **not a general guarantee** — it
+         held for that specific merge shape, not for this one. Whether
+         a merged silhouette reads as low- or high-confidence depends on
+         how closely it happens to resemble some other trained class,
+         which can't be predicted without testing the specific shape.
+      3. **New, subtler failure mode: icon-only crops can't distinguish
+         near-visual-twin classes that share the same icon.** One box
+         captured only the top icon of a multi-element parking sign,
+         excluding whatever supplementary plate is what actually
+         separates "Parking (parking space)" from "Regulated parking
+         zone" in the class taxonomy (both use the same blue square "P"
+         icon on their own). The crop was classified "Regulated parking
+         zone" at 100% confidence; there's no way to verify from the
+         icon-only crop alone which one the physical sign actually is —
+         which is itself the finding: some sign-class pairs need the
+         full multi-plate sign in frame, not just the icon, to be
+         disambiguated at all.
+      4. **Clip 1's watermark-occlusion problem did not recur here** —
+         this video's on-screen captions sit lower in the frame (near
+         the road/horizon), not over the elevated sign poles, so they
+         never overlap a detected sign. Confirms that finding was
+         specific to that channel's watermark placement, not an
+         inherent flaw in the pipeline.
+      5. A small, distant red sliver (likely a marker/reflector, not a
+         real sign) was picked up at a moderate 65% confidence — same
+         pattern as clip 1's non-sign-object finding, confidence
+         thresholding alone doesn't catch it.
 - [ ] 9.6 Package a demo: a script that takes a video file (or a live
       camera feed) and produces an annotated output — boxes and labels
       drawn on the video, or the live "which rule is active right now"

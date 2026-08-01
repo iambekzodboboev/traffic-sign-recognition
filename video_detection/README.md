@@ -37,11 +37,13 @@ reasoning.
 
 ## Status
 
-Steps 9.1-9.4 done (detector, classifier wiring, full video loop with
-frame sampling and tracking). Verified on a real ~3-minute driving-test
-video: 738 sampled frames at 4 fps, 76 distinct tracked signs reported
-after deduplication. Known findings, all confirmed by direct inspection,
-not assumption:
+Steps 9.1-9.5 done (detector, classifier wiring, full video loop with
+frame sampling and tracking, tested against two different real videos).
+9.6 (packaging as a clean demo) is next.
+
+**Clip 1** — a real ~3-minute driving-test video: 738 sampled frames at
+4 fps, 76 distinct tracked signs reported after deduplication. Known
+findings, all confirmed by direct inspection, not assumption:
 
 - Correctly detects and classifies signs never specifically hand-tested
   before (e.g. "Steep ascent 12%", "Curve right" held correctly for 85
@@ -78,5 +80,43 @@ not assumption:
   alone is a weaker trust signal once the source crop itself is this
   degraded.
 
-Next: 9.5 (a fuller honest test pass, e.g. against a second video) and
-9.6 (package a clean, runnable demo).
+**Clip 2** — a public Instagram reel from a driving-school account
+(`driving_clip_02.mp4`, portrait 720x1280, 25fps, 123.5s), a different
+video with different lighting, route, and camera mount, filmed at a
+different closed driving-test facility than clip 1 (confirmed by the
+video's own on-screen station captions). 515 sampled frames at 4 fps,
+116 tracked signs (higher density than clip 1, consistent with a
+facility that has many numbered practice stations each carrying real
+signage, not noise). Findings, each confirmed by pulling the actual
+crop/frame:
+
+- STOP signs and plain "P" parking signs replicated clip 1's good
+  behavior: tracked correctly and consistently across the approach,
+  confidence tracking correctness closely on large, clean crops.
+- **New failure mode: a confidently-wrong merge, not a low-confidence
+  one.** This facility mounts two different sign faces stacked on one
+  post (e.g. pedestrian-crossing icon above a left-turn arrow icon).
+  The detector boxes both as one region, and the classifier confidently
+  (97-98%) mislabels the combined shape as an unrelated class ("Car
+  washing"), reproducibly at multiple stations. This means clip 1's
+  "merged boxes show up as low confidence" finding is **not a general
+  guarantee** — it held for that specific merge shape, not this one.
+- **New, subtler failure mode:** a box captured only the icon of a
+  multi-element parking sign, excluding the supplementary plate that
+  the class taxonomy actually uses to tell "Parking (parking space)"
+  apart from "Regulated parking zone" (both share the same blue-square
+  "P" icon alone). Classified confidently (100%) as one of the two —
+  the icon-only crop genuinely doesn't contain enough information to
+  verify which is correct, which is itself the finding.
+- Clip 1's watermark-on-sign occlusion did **not** recur — this video's
+  captions sit low in the frame (near the road), never overlapping the
+  elevated sign poles, confirming that finding was specific to clip 1's
+  channel watermark placement, not an inherent pipeline flaw.
+- A small, distant red sliver (likely a marker, not a sign) was picked
+  up at a moderate 65% confidence — same non-sign-object pattern as
+  clip 1.
+
+Full detail (including the "how it was downloaded" note) in
+`ROADMAP.md` section 9.5 and `PROJECT_STATUS.md`.
+
+Next: 9.6 (package a clean, runnable demo).

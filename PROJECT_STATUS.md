@@ -6,9 +6,9 @@ Traffic Sign Recognition
 
 ## Current stage
 
-Stage 9 — Real-World Video Detection, in progress (steps 9.1-9.4 done;
-stages 1-7 complete; stage 8 partially done — see below). See
-`ROADMAP.md` for the full step-by-step plan.
+Stage 9 — Real-World Video Detection, in progress (steps 9.1-9.5 done,
+9.6 remaining; stages 1-7 complete; stage 8 partially done — see below).
+See `ROADMAP.md` for the full step-by-step plan.
 
 ## Completed
 
@@ -158,13 +158,14 @@ stages 1-7 complete; stage 8 partially done — see below). See
   PowerPoint COM automation → PDF → per-slide visual review, plus
   `markitdown` content checks and the pptx skill's schema validator (all
   passed).
-- **Stage 9.1-9.4 done** (new, isolated component at `video_detection/`,
+- **Stage 9.1-9.5 done** (new, isolated component at `video_detection/`,
   never touches `bot.py` or anything it depends on — reuses the trained
   classifier read-only via `scripts/predict_sign.py`). Extends the
   finished classifier to real driving video, where a sign is small within
-  a busy scene rather than already cropped to fill the frame. Full
-  details and all findings in `video_detection/README.md` and
-  `ROADMAP.md` section 9; headline results in the section below.
+  a busy scene rather than already cropped to fill the frame. Tested
+  against two different real videos (9.5). Full details and all findings
+  in `video_detection/README.md` and `ROADMAP.md` section 9; headline
+  results in the section below.
 
 ## Stage 9 video detection results
 
@@ -227,8 +228,64 @@ assumed**:
    "confident" score means less on a crop this degraded than on the
    large, clean crops tested earlier in the project.
 
-**Not yet done**: 9.5 (a dedicated honest test pass against a *second*,
-different video) and 9.6 (package this as a clean, runnable demo).
+**Stage 9.5 — second-video honest test pass, done.** A different real
+video: a public Instagram reel from a driving-school account
+(`avtoshkola_dlya_jenshin`), downloaded via `yt-dlp` with the user's
+explicit direction after they supplied the link, portrait 720x1280,
+25fps, 123.5s, stored as `video_detection/test_videos/driving_clip_02.mp4`.
+Different lighting, route, and camera mount from clip 1 — and, confirmed
+by the video's own on-screen station captions (e.g. "3.SVETOFOR",
+"7.TEMIR YO'L KESISHMASI"), filmed at a different, larger closed
+driving-test facility ("avtodrom") with many numbered practice stations,
+each carrying real signage. Full run: 515 sampled frames (~4 fps) in
+22.4s, 116 deduplicated tracked signs (higher density than clip 1's 76
+in 172s — explained by the many-stations layout, not noise).
+
+Findings, each confirmed by pulling and looking at the actual crop/frame
+(gotcha #20), not assumed from the confidence number alone:
+1. STOP signs and plain "P" parking signs replicated clip 1's good
+   behavior — tracked correctly and consistently across the approach,
+   confidence tracking correctness closely on large, clean crops. Not a
+   fluke of the first video.
+2. **New failure mode: a confidently-wrong merge, not a low-confidence
+   one.** This facility mounts two different sign faces stacked
+   vertically on one post (e.g. a pedestrian-crossing icon directly
+   above a left-turn mandatory-arrow icon). The detector boxes both as
+   a single region, and the classifier confidently (97-98%) mislabels
+   the combined shape as an unrelated class ("Car washing") —
+   reproducibly, at more than one course station. This means clip 1's
+   finding #2 above ("merged boxes reliably show up as low confidence")
+   is **not a general guarantee** — it held for that specific merge
+   shape, not this one; whether a merge reads as low- or
+   high-confidence depends on how closely the combined silhouette
+   happens to resemble some other trained class, which can't be
+   predicted without testing the specific shape.
+3. **New, subtler failure mode: icon-only crops can't disambiguate
+   near-visual-twin classes that share the same icon.** One box
+   captured only the top icon of a multi-element parking sign,
+   excluding whatever supplementary plate actually separates "Parking
+   (parking space)" from "Regulated parking zone" in the class
+   taxonomy (both use the same blue-square "P" icon alone). Classified
+   confidently (100%) as one of the two; the icon-only crop genuinely
+   doesn't contain enough information to verify which is correct from
+   the image alone — which is itself the finding.
+4. **Clip 1's watermark-on-sign occlusion did not recur.** This video's
+   on-screen captions sit low in the frame (near the road/horizon), not
+   over the elevated sign poles, so they never overlap a detected sign
+   — confirms that finding was specific to clip 1's channel watermark
+   placement, not an inherent flaw in the pipeline.
+5. A small, distant red sliver (likely a marker/reflector, not a real
+   sign) was picked up at a moderate 65% confidence — same
+   non-sign-object pattern as clip 1's finding #3.
+
+**Overall stage 9.5 takeaway**: the honest limitations found on clip 1
+are a mix of footage-specific (watermark placement — did not recur) and
+genuinely general (confidence isn't a fully reliable safety net for
+merged or partially-framed detections — recurred in a *different* form
+on clip 2). Two different real-world videos were enough to tell these
+apart without needing a much larger test set.
+
+**Not yet done**: 9.6 (package this as a clean, runnable demo).
 
 ## Stage 6 model selection results
 
@@ -371,18 +428,12 @@ limitation if asked during defense.
 
 ## Current task
 
-Deciding between two open threads (ask the user which to prioritize
-before starting either): **(a)** stage 9.5/9.6 — a dedicated honest test
-pass against a second, different video, then package `video_detection/`
-as a clean runnable demo; or **(b)** stage 8.1/8.3 — clean up final
-notebooks/scripts, confirm `requirements.txt` is accurate, update
-`README.md`. Neither has been started; nothing is blocking either one.
+Stage 9.6 — package `video_detection/` as a clean, documented, runnable
+demo, the last step of stage 9. Stage 8.1/8.3 (notebook/script cleanup,
+`README.md` update) remains a separate open thread, not yet started.
 
 ## Next
 
-- Stage 9.5 — honest test pass against a second video (different
-  lighting/route/camera mount) to see how much of the found limitations
-  are specific to the first test clip
 - Stage 9.6 — package `video_detection/` as a clean, documented,
   runnable demo (video file in, annotated video + report out; optionally
   a live-camera-feed variant)
