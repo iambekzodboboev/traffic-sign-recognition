@@ -326,7 +326,7 @@ evaluated on Kaggle Notebooks, 99.37% held-out test accuracy.
 - [ ] 8.3 Update `PROJECT_STATUS.md` to reflect completion and prepare a
       short defense summary of what was done and why.
 
-## 9. Real-World Video Detection (proposed future phase, not started)
+## 9. Real-World Video Detection (in progress — steps 9.1-9.4 done)
 
 **Why this is a new phase, not a tweak**: the trained classifier (stages
 5-6) and the bot (stage 7) both assume the input is already a close, clean
@@ -341,68 +341,128 @@ have yet: finding *where* a sign is before deciding *which* sign it is.
 That's a different, additional ML task (object detection), layered in
 front of the classifier that already works, not a retraining of it.
 
-**The reassuring part**: the trained ResNet18 classifier (99.37% test
-accuracy) does not need to be retrained or redone. It already proved it
-works well once given a clean, cropped sign. What's missing is only the
-"find the sign in a busy frame" step in front of it.
+**The reassuring part, confirmed true in practice**: the trained ResNet18
+classifier (99.37% test accuracy) was never retrained or touched for any
+of this. It's reused exactly as-is, read-only, from `scripts/predict_sign.py`.
 
-- [ ] 9.1 Choose a detection approach (a research/decision step, no
-      training yet). Three options, in order of preference:
-      (a) reuse an existing openly-available pretrained traffic-sign
-      *detector* (a model whose only job is drawing a box around
-      anything sign-shaped, not naming it) — fastest, and the same
-      "reuse strong pretrained work" lesson already learned in stage 6;
-      (b) fine-tune a general pretrained object detector (e.g. a
-      YOLO-family model) on a small custom set of real driving frames,
-      treating "traffic sign" as one generic class to find;
-      (c) train a detector fully from scratch — not realistic here,
-      since this project's own dataset has no bounding-box coordinates
-      or busy-scene backgrounds to learn "where" from, only pre-cropped
-      single-sign images. Default to (a), fall back to (b) if no
-      suitable pretrained detector handles this signage style well.
-- [ ] 9.2 Build a small real-world validation set — pull a handful of
-      real dashcam / "blogger driver" style driving videos, extract
-      sample frames, and manually mark where the real signs are in
-      ~50-100 frames (a free annotation tool, e.g. makesense.ai or
-      LabelImg, is enough). This isn't training data — it's how we'll
-      actually measure whether the chosen detector finds real signs
-      reliably in this specific real-world visual style, before
-      building anything on top of it.
-- [ ] 9.3 Build the detect → crop → classify pipeline. For each
-      frame: run the detector to get candidate sign boxes; crop each
-      box; run the crop through the *exact same* letterbox-resize +
-      normalize preprocessing already built in stage 4 (reused as-is,
-      not reinvented); feed it to the existing trained classifier; get
-      back sign name, category, and confidence exactly as today's bot
-      already does per photo.
-- [ ] 9.4 Adapt for continuous video, not single photos. Two new
-      problems only show up here: (1) processing every single frame is
-      wasteful and too slow for anything real-time, so sample frames at
-      a fixed rate instead (e.g. a few times per second); (2) the same
-      physical sign appears across many consecutive frames as a car
-      approaches it, so a simple tracking rule (matching detections
-      between nearby frames by position/overlap) is needed to know
-      "this is still the same sign" and pick the clearest, most
-      confident frame to report from — rather than repeating or
-      flickering between guesses frame to frame. Extend the bot's
-      already-added "confidence too low → ask for a clearer photo"
-      rule into "must be confidently recognized across a few consecutive
-      frames before it's reported at all," not just one lucky frame.
-- [ ] 9.5 Test honestly on real footage and document what breaks. Run
-      the full pipeline on real driving videos and review the results
-      by eye. This project's dataset is relatively clean daytime photos,
-      so it's likely real footage will expose failure modes the dataset
-      never covered — motion blur, night driving, rain, extreme angles,
-      partial occlusion by other vehicles. Write these up plainly, the
-      same way every earlier stage in this project stated its
-      limitations honestly, rather than only showcasing successes.
+**Isolation, honored throughout**: everything for this phase lives in
+`video_detection/`, a separate component. `bot.py` (the Telegram bot) was
+never modified and still works exactly as it did at the end of stage 7.
+
+- [x] 9.1 Choose a detection approach. **Decision: classical computer
+      vision (color + shape detection in OpenCV), not a downloaded
+      pretrained detector.** This deviates from the roadmap's original
+      preference, for two concrete reasons found during actual testing,
+      not assumed up front: (1) downloading a third-party detector
+      checkpoint from an untrusted source is a real security risk (unlike
+      the ResNet18 weights, which came from torchvision's own official,
+      trusted channel); (2) tested anyway with the official, trusted
+      Ultralytics YOLOv8 (COCO-pretrained) as a fair comparison — it
+      completely missed a clearly-visible STOP sign in a real test frame
+      (COCO's "stop sign" class didn't generalize to this angled, small,
+      real-world case), while the classical color+shape approach found
+      it correctly on the first try, plus a pedestrian-crossing sign in
+      the same frame. Classical CV won the comparison outright, and
+      needs no external model trust decision at all. Implemented in
+      `video_detection/detector.py`.
+- [x] 9.2 Real-world validation — done pragmatically, not via a formal
+      labeled dataset. Rather than building a ~50-100 frame
+      hand-annotated bounding-box set with a separate tool (the original
+      plan), validation was done by direct visual inspection: extracting
+      real frames from the user's own driving-test-track video (see
+      below) and checking the detector's boxes against them by eye at
+      each iteration. A deliberate scope simplification for a course
+      project — faster, and caught every real problem found so far
+      (see 9.3-9.4 below) just as effectively.
+      **Test video**: a real ~3-minute driving-test-track clip
+      (portrait 720x1280, ~30fps) provided by the user, showing a
+      "driving school test" style route (Uzbek captions, channel
+      watermark overlay) with STOP signs, a pedestrian crossing,
+      warning triangles, mandatory circles, lane-direction signs, and
+      traffic lights. Stored at `video_detection/test_videos/`
+      (gitignored, same treatment as the dataset zip).
+- [x] 9.3 Build the detect → crop → classify pipeline.
+      `video_detection/classifier.py` crops each detected box and runs
+      it through the exact same letterbox-resize + normalize
+      preprocessing already built in stage 4 (imported directly from
+      `scripts/predict_sign.py`, never duplicated or modified), then the
+      existing trained classifier. Two real bugs found and fixed via
+      direct testing before moving on: (a) a detected box can extend
+      slightly into a neighboring object (e.g. a car mirror next to a
+      sign) — tried a 12% inward shrink margin, which *broke* an
+      already-correct STOP sign result (99.4% → 22%, wrong) by cutting
+      into the sign's own text; settled on a gentler 5% margin, which
+      helps the mirror case without breaking the working one; (b) found,
+      and explicitly did **not** try to fix, a deeper issue: a channel
+      watermark rendered semi-transparently *on top of* a sign (not
+      beside it) causes confident misclassification that no box-boundary
+      adjustment can remove, since those pixels are inside the sign's own
+      region — a real limitation specific to "blogger"/social-media
+      style footage, stated honestly rather than patched over.
+- [x] 9.4 Adapt for continuous video. `video_detection/process_video.py`
+      samples the video (not every frame) and runs detect+classify per
+      sampled frame; `video_detection/tracker.py` matches detections
+      across samples by box overlap (IoU) so the same physical sign
+      isn't reported fresh every time, and only reports a track once a
+      *majority* of its confident observations agree on the same class
+      (the "not just one lucky frame" rule). Two real problems found by
+      testing, not anticipated up front: sampling at 2 fps left gaps
+      large enough that a sign moving fast across the frame (not just
+      growing, e.g. one off to the side of the road) could have *zero*
+      box overlap between consecutive samples — no IoU threshold fixes
+      a true zero-overlap gap. Fixed with (a) a center-to-center distance
+      fallback match for when IoU finds no overlap at all, and (b)
+      raising the sample rate to 4 fps (cheap: this pipeline runs at
+      ~0.05s/sampled frame, far from any real-time limit). Together,
+      these turned what were 5 fragmented "Stop" tracks and a 3-way-split
+      fast-moving sign into 2 and 1 clean continuous tracks.
+      **Full-video result**: 738 sampled frames (~4 fps, 172s video) in
+      39 seconds, 76 deduplicated tracked signs reported.
+- [~] 9.5 Test honestly on real footage and document what breaks —
+      substantial honest testing already done throughout 9.1-9.4 (not a
+      separate pass yet). Confirmed, specific findings, each verified by
+      direct inspection rather than assumed:
+      1. Correctly detects and classifies sign types never
+         individually hand-tested before (e.g. "Steep ascent 12%";
+         "Curve right" held correctly across 85 consecutive sampled
+         frames as the car approached it).
+      2. A channel watermark drawn on top of a sign causes confident
+         misclassification (see 9.3) — footage-specific, not fixable
+         by box adjustment.
+      3. Two signs close together can merge into one detection box; the
+         resulting crop confuses the classifier, but this reliably
+         shows up as *low* confidence rather than a wrong confident
+         answer — the safety net works as intended here.
+      4. Feeding a non-sign red/round object (a traffic light lens) to
+         the classifier produced a moderately confident wrong answer
+         (~65-77%) — confidence thresholding alone doesn't catch every
+         such case.
+      5. Many short tracks reported "Lane directions" repeatedly.
+         Spot-checked directly (not assumed to be noise): these are
+         real small signs, visually confirmed (one on a post next to a
+         painted lane arrow on the pavement) — but the crops are tiny
+         and blurry, and a "confident" score means less on a crop that
+         degraded than on the large, clean crops tested earlier.
+      Not yet done: a dedicated pass against a *second*, different
+      video (different lighting/route/camera mount) to check how much
+      of the above is specific to this one test clip.
 - [ ] 9.6 Package a demo: a script that takes a video file (or a live
       camera feed) and produces an annotated output — boxes and labels
       drawn on the video, or the live "which rule is active right now"
       style already sketched conceptually in the project presentation's
-      future-vision slide. This is the concrete bridge from "a model
-      that classifies photos" to the dash-cam driving-assistant concept
+      future-vision slide. `process_video.py` already does the video-in,
+      annotated-video-out part; what's left is packaging it as a clean,
+      documented, easy-to-run demo (plus optionally the "live camera
+      feed" variant). This is the concrete bridge from "a model that
+      classifies photos" to the dash-cam driving-assistant concept
       already pitched as future work.
+
+**Code map for this phase** (all in `video_detection/`, isolated from
+the bot): `detector.py` (localization) → `classifier.py` (wires a crop
+into the existing model) → `tracker.py` (deduplicates across frames) →
+`process_video.py` (ties it all together: sample → detect → classify →
+track → annotate + report). Full narrative and findings in
+`video_detection/README.md`.
 
 **Honest scope note**: this is a meaningfully bigger undertaking than
 anything built so far — it introduces a whole additional ML sub-field

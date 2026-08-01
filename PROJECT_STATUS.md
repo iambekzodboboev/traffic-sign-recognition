@@ -6,8 +6,9 @@ Traffic Sign Recognition
 
 ## Current stage
 
-Stage 8 — Reproducibility, documentation, defense prep (stages 1-7
-complete; see `ROADMAP.md` for full step-by-step plan)
+Stage 9 — Real-World Video Detection, in progress (steps 9.1-9.4 done;
+stages 1-7 complete; stage 8 partially done — see below). See
+`ROADMAP.md` for the full step-by-step plan.
 
 ## Completed
 
@@ -149,6 +150,85 @@ complete; see `ROADMAP.md` for full step-by-step plan)
   real data/results and the full results tables. `README.md` itself
   hasn't been updated yet, and 8.1 (notebook/script cleanup) hasn't been
   started.
+- Also produced `Traffic_Sign_Recognition_Presentation.pptx` — a 13-slide,
+  10-minute defense deck (demand → detailed methodology with real
+  charts/stats → future vision: real-time video on a dash-cam device,
+  with a custom concept illustration). Built with `python-pptx` (this
+  machine has no Node.js for the usual `pptxgenjs` path); QA'd via
+  PowerPoint COM automation → PDF → per-slide visual review, plus
+  `markitdown` content checks and the pptx skill's schema validator (all
+  passed).
+- **Stage 9.1-9.4 done** (new, isolated component at `video_detection/`,
+  never touches `bot.py` or anything it depends on — reuses the trained
+  classifier read-only via `scripts/predict_sign.py`). Extends the
+  finished classifier to real driving video, where a sign is small within
+  a busy scene rather than already cropped to fill the frame. Full
+  details and all findings in `video_detection/README.md` and
+  `ROADMAP.md` section 9; headline results in the section below.
+
+## Stage 9 video detection results
+
+**Approach**: classical computer vision (color + shape detection in
+OpenCV) for localization — not a downloaded pretrained detector.
+Deviated from the original plan on purpose, for reasons found by
+testing: downloading a third-party detector checkpoint is a real
+security risk (unlike the ResNet18 weights, sourced from torchvision's
+own trusted channel), and a direct side-by-side test confirmed classical
+CV was also simply *better* here — official Ultralytics YOLOv8
+(COCO-pretrained) completely missed a clearly-visible STOP sign in a
+real test frame, while the color+shape approach found it correctly on
+the first try. Code: `video_detection/detector.py` (localization) →
+`classifier.py` (wires a crop into the existing model, unmodified) →
+`tracker.py` (deduplicates the same sign across frames) →
+`process_video.py` (ties it together: sample → detect → classify →
+track → annotate).
+
+**Test material**: a real ~3-minute driving-test-track video provided by
+the user (portrait 720x1280, ~30fps, Uzbek captions, a permanent channel
+watermark overlay) — signs include STOP, pedestrian crossing, warning
+triangles, mandatory circles, lane-direction signs, traffic lights.
+
+**Full-video result**: sampled at 4 fps (738 sampled frames from 172s of
+video) in 39 seconds; 76 deduplicated tracked signs reported after
+tracking (a track is only reported once a majority of its confident
+observations agree on the same class — not just one lucky frame).
+
+**Two real tracking bugs found and fixed by testing** (not anticipated
+up front): a sign moving fast across the frame can have *zero* box
+overlap between consecutive samples at low sample rates — no IoU
+threshold can bridge a true zero-overlap gap. Fixed with a
+center-to-center-distance fallback match plus raising the sample rate
+from 2 to 4 fps (cheap given the pipeline's ~0.05s/frame speed).
+Together, these turned 5 fragmented "Stop" tracks and a 3-way-split
+fast-moving sign into 2 and 1 clean continuous tracks.
+
+**Honest limitations found, each confirmed by direct inspection, not
+assumed**:
+1. A channel watermark rendered semi-transparently *on top of* a sign
+   (not beside it) causes confident misclassification that no
+   box-boundary adjustment can remove, since the contamination is
+   *inside* the sign's own pixel region — specific to "blogger"/
+   social-media-style footage with baked-in overlays, not plain dashcam
+   video. Tried a 12% box-shrink margin as a possible fix; it broke an
+   already-correct result elsewhere (a STOP sign dropped from 99.4% to
+   22% confidence, wrong) by cutting into the sign's own text — settled
+   on a gentler 5% margin instead.
+2. Two signs close together can merge into a single detection box; the
+   resulting crop confuses the classifier, but this reliably shows up
+   as *low* confidence rather than a wrong confident answer — the
+   safety net works as intended.
+3. Feeding a non-sign red/round object (a traffic light lens) to the
+   classifier can produce a moderately confident wrong answer (~65-77%)
+   — confidence thresholding alone doesn't catch every such case.
+4. Many short tracks reported "Lane directions" repeatedly; spot-checked
+   directly rather than assumed to be noise — these are real small
+   signs (one visually confirmed mounted on a post next to a painted
+   lane arrow on the pavement), but the crops are tiny and blurry, so a
+   "confident" score means less on a crop this degraded than on the
+   large, clean crops tested earlier in the project.
+
+**Not yet done**: 9.5 (a dedicated honest test pass against a *second*,
+different video) and 9.6 (package this as a clean, runnable demo).
 
 ## Stage 6 model selection results
 
@@ -291,23 +371,28 @@ limitation if asked during defense.
 
 ## Current task
 
-Stage 8.1 — clean up the final notebooks/scripts and confirm
-`requirements.txt` is accurate, so the whole pipeline can be rerun from
-scratch (not started yet; discuss scope with the user first). Stage 8.2's
-comprehensive narrative report is done
-(`Traffic_Sign_Recognition_Project_Report.docx`); README.md itself is
-still unchanged.
+Deciding between two open threads (ask the user which to prioritize
+before starting either): **(a)** stage 9.5/9.6 — a dedicated honest test
+pass against a second, different video, then package `video_detection/`
+as a clean runnable demo; or **(b)** stage 8.1/8.3 — clean up final
+notebooks/scripts, confirm `requirements.txt` is accurate, update
+`README.md`. Neither has been started; nothing is blocking either one.
 
 ## Next
 
+- Stage 9.5 — honest test pass against a second video (different
+  lighting/route/camera mount) to see how much of the found limitations
+  are specific to the first test clip
+- Stage 9.6 — package `video_detection/` as a clean, documented,
+  runnable demo (video file in, annotated video + report out; optionally
+  a live-camera-feed variant)
 - 8.1 Clean up final notebooks/scripts, confirm `requirements.txt` is accurate
-- 8.2 Update `README.md` with how to reproduce and the main results
-- 8.3 Update `PROJECT_STATUS.md` to reflect completion, prepare defense summary
-- (proposed, not started) Stage 9 — real-world video detection: add an
-  object-detection step in front of the existing classifier so it can
-  find signs in busy driving video, not just classify pre-cropped
-  photos. Full staged plan in `ROADMAP.md` section 9, written up in
-  response to the real-world bot-testing limitation above.
+- 8.2 Update `README.md` with how to reproduce and the main results (the
+  project report `.docx` and presentation `.pptx` already cover this
+  narratively, but `README.md` itself — the GitHub-facing doc — is
+  still the original stub)
+- 8.3 Update `PROJECT_STATUS.md` to reflect full completion, prepare a
+  short defense summary
 
 ## Known problems / blockers
 
@@ -326,4 +411,7 @@ still unchanged.
   model accuracy. This is direct, real-world evidence for why the future
   plan (Section 10 of the project report / the presentation's future-vision
   slide) includes a detection step to locate and crop the sign *before*
-  classifying it, rather than classifying a whole photo directly.
+  classifying it, rather than classifying a whole photo directly. **This
+  is exactly what stage 9 (`video_detection/`) now addresses** — see
+  "Stage 9 video detection results" above for what's been built and
+  found so far.
