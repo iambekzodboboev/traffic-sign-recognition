@@ -325,3 +325,87 @@ evaluated on Kaggle Notebooks, 99.37% held-out test accuracy.
 - [ ] 8.2 Update `README.md` with how to reproduce and the main results.
 - [ ] 8.3 Update `PROJECT_STATUS.md` to reflect completion and prepare a
       short defense summary of what was done and why.
+
+## 9. Real-World Video Detection (proposed future phase, not started)
+
+**Why this is a new phase, not a tweak**: the trained classifier (stages
+5-6) and the bot (stage 7) both assume the input is already a close, clean
+photo of a single sign — matching exactly what the training dataset looks
+like. Real-world testing of the deployed bot confirmed this directly: a
+wide street-scene photo (sign small within a lot of background) came back
+low-confidence and wrong, while every close-up test photo scored 99%+ (see
+`PROJECT_STATUS.md`, "Known problems"). To work on real driving video —
+dashcam or "blogger driver" style footage, where a sign is one small,
+moving detail in a busy scene — the system needs a capability it doesn't
+have yet: finding *where* a sign is before deciding *which* sign it is.
+That's a different, additional ML task (object detection), layered in
+front of the classifier that already works, not a retraining of it.
+
+**The reassuring part**: the trained ResNet18 classifier (99.37% test
+accuracy) does not need to be retrained or redone. It already proved it
+works well once given a clean, cropped sign. What's missing is only the
+"find the sign in a busy frame" step in front of it.
+
+- [ ] 9.1 Choose a detection approach (a research/decision step, no
+      training yet). Three options, in order of preference:
+      (a) reuse an existing openly-available pretrained traffic-sign
+      *detector* (a model whose only job is drawing a box around
+      anything sign-shaped, not naming it) — fastest, and the same
+      "reuse strong pretrained work" lesson already learned in stage 6;
+      (b) fine-tune a general pretrained object detector (e.g. a
+      YOLO-family model) on a small custom set of real driving frames,
+      treating "traffic sign" as one generic class to find;
+      (c) train a detector fully from scratch — not realistic here,
+      since this project's own dataset has no bounding-box coordinates
+      or busy-scene backgrounds to learn "where" from, only pre-cropped
+      single-sign images. Default to (a), fall back to (b) if no
+      suitable pretrained detector handles this signage style well.
+- [ ] 9.2 Build a small real-world validation set — pull a handful of
+      real dashcam / "blogger driver" style driving videos, extract
+      sample frames, and manually mark where the real signs are in
+      ~50-100 frames (a free annotation tool, e.g. makesense.ai or
+      LabelImg, is enough). This isn't training data — it's how we'll
+      actually measure whether the chosen detector finds real signs
+      reliably in this specific real-world visual style, before
+      building anything on top of it.
+- [ ] 9.3 Build the detect → crop → classify pipeline. For each
+      frame: run the detector to get candidate sign boxes; crop each
+      box; run the crop through the *exact same* letterbox-resize +
+      normalize preprocessing already built in stage 4 (reused as-is,
+      not reinvented); feed it to the existing trained classifier; get
+      back sign name, category, and confidence exactly as today's bot
+      already does per photo.
+- [ ] 9.4 Adapt for continuous video, not single photos. Two new
+      problems only show up here: (1) processing every single frame is
+      wasteful and too slow for anything real-time, so sample frames at
+      a fixed rate instead (e.g. a few times per second); (2) the same
+      physical sign appears across many consecutive frames as a car
+      approaches it, so a simple tracking rule (matching detections
+      between nearby frames by position/overlap) is needed to know
+      "this is still the same sign" and pick the clearest, most
+      confident frame to report from — rather than repeating or
+      flickering between guesses frame to frame. Extend the bot's
+      already-added "confidence too low → ask for a clearer photo"
+      rule into "must be confidently recognized across a few consecutive
+      frames before it's reported at all," not just one lucky frame.
+- [ ] 9.5 Test honestly on real footage and document what breaks. Run
+      the full pipeline on real driving videos and review the results
+      by eye. This project's dataset is relatively clean daytime photos,
+      so it's likely real footage will expose failure modes the dataset
+      never covered — motion blur, night driving, rain, extreme angles,
+      partial occlusion by other vehicles. Write these up plainly, the
+      same way every earlier stage in this project stated its
+      limitations honestly, rather than only showcasing successes.
+- [ ] 9.6 Package a demo: a script that takes a video file (or a live
+      camera feed) and produces an annotated output — boxes and labels
+      drawn on the video, or the live "which rule is active right now"
+      style already sketched conceptually in the project presentation's
+      future-vision slide. This is the concrete bridge from "a model
+      that classifies photos" to the dash-cam driving-assistant concept
+      already pitched as future work.
+
+**Honest scope note**: this is a meaningfully bigger undertaking than
+anything built so far — it introduces a whole additional ML sub-field
+(object detection), a new small labeled validation set, and real
+video-processing engineering. It's appropriately a future/stretch phase,
+not a quick follow-on task.

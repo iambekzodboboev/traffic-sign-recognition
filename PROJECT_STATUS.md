@@ -303,6 +303,11 @@ still unchanged.
 - 8.1 Clean up final notebooks/scripts, confirm `requirements.txt` is accurate
 - 8.2 Update `README.md` with how to reproduce and the main results
 - 8.3 Update `PROJECT_STATUS.md` to reflect completion, prepare defense summary
+- (proposed, not started) Stage 9 — real-world video detection: add an
+  object-detection step in front of the existing classifier so it can
+  find signs in busy driving video, not just classify pre-cropped
+  photos. Full staged plan in `ROADMAP.md` section 9, written up in
+  response to the real-world bot-testing limitation above.
 
 ## Known problems / blockers
 
