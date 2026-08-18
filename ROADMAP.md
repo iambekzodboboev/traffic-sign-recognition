@@ -338,7 +338,14 @@ evaluated on Kaggle Notebooks, 99.37% held-out test accuracy.
       cosmetic output capture would cost cloud quota for no new
       information) -- each got a short note instead, pointing to
       `PROJECT_STATUS.md`/MLflow for the real numbers.
-- [ ] 8.2 Update `README.md` with how to reproduce and the main results.
+- [x] 8.2 Update `README.md` with how to reproduce and the main results.
+      Replaced the original stub (goal + 6-item plan list) with a real
+      overview: live demo link, headline results table (baseline 87.84%
+      vs. final 99.37% test accuracy), a stage-by-stage "how it's built"
+      summary, an accurate repo layout, and copy-pasteable run
+      instructions for all three serving surfaces (bot, video detection
+      CLI, Signal web app) verified against each component's own README.
+      This closes out stage 8 — all of 8.1/8.2/8.3 are now done.
 - [x] 8.3 Update `PROJECT_STATUS.md` to reflect completion and prepare a
       short defense summary of what was done and why. Added a "Defense
       summary" section near the top of `PROJECT_STATUS.md` synthesizing

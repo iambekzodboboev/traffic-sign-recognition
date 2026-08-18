@@ -6,9 +6,14 @@ Traffic Sign Recognition
 
 ## Current stage
 
-Stages 0-7, 9 (9.1-9.6), and 10 (public Streamlit web demo) **complete**.
-Stage 8 nearly complete: 8.1 and 8.3 done, only 8.2 (`README.md` update)
-remains. See `ROADMAP.md` for the full step-by-step plan.
+Stages 0-10 are all **complete**, including stage 8 (docs/defense — 8.1,
+8.2, 8.3 all done: report + presentation built, `README.md` rewritten
+with real results and run instructions, and this defense summary). See
+`ROADMAP.md` for the full step-by-step plan.
+
+The only work remaining on the project is a separate, non-staged thread
+of course deliverables (submission form, showcase worksheet) — see the
+"Course deliverables" section below.
 
 ## Defense summary
 
