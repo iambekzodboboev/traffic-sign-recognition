@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Signal — a traffic sign recognition system trained on 116,642 images, tested on real driving video, 99.37% held-out accuracy.">
+<meta name="theme-color" content="#18100D">
+<title>Signal — Traffic Sign Recognition</title>
+<style>
+:root{
+  --asphalt:#18100D;
+  --surface:#241A14;
+  --surface-2:#2E211A;
+  --line:#42332A;
+  --paper:#F3ECDE;
+  --muted:#B3A190;
+  --dim:#8A7C6C;
+  --red:#D8432E;
+  --red-ink:#2A0E08;
+  --blue:#2E6E9E;
+  --blue-ink:#0B1E2C;
+  --amber:#E3A73B;
+  --amber-ink:#2E2107;
+  --mono:"SF Mono","Cascadia Code",Consolas,"Roboto Mono",monospace;
+  --sans:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --display:"Arial Black","Segoe UI",-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html{background:var(--asphalt)}
+body{
+  margin:0;
+  background:var(--asphalt);
+  color:var(--paper);
+  font-family:var(--sans);
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:"";
+  position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:radial-gradient(1px 1px at 20% 30%, rgba(243,236,222,.04) 1px, transparent 1px),
+                    radial-gradient(1px 1px at 70% 65%, rgba(243,236,222,.03) 1px, transparent 1px);
+  background-size:140px 140px, 220px 220px;
+}
+.wrap{width:min(1080px, calc(100% - 48px));margin-inline:auto}
+a{color:inherit}
+h1,h2,h3{text-wrap:balance;margin:0}
+img,svg{display:block;max-width:100%}
+::selection{background:var(--red);color:var(--paper)}
+:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ---------- route line down the page ---------- */
+.route{position:relative}
+.route::before{
+  content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;
+  background:repeating-linear-gradient(var(--paper) 0 22px, transparent 22px 40px);
+  opacity:.10;transform:translateX(-50%);
+  display:none;
+}
+@media (min-width:860px){.route::before{display:block}}
+
+/* ---------- nav ---------- */
+.nav{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);background:rgba(24,16,13,.82);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--display);font-weight:900;font-size:19px;letter-spacing:-.01em}
+.brand .mark{width:30px;height:30px;border-radius:50%;border:2.5px solid var(--paper);display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:700}
+.navlinks{display:flex;gap:26px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.navlinks a{text-decoration:none;color:var(--muted);transition:color .15s}
+.navlinks a:hover{color:var(--paper)}
+@media (max-width:700px){.navlinks{display:none}}
+
+/* ---------- hero ---------- */
+.hero{padding:88px 0 70px;position:relative}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--amber);text-transform:uppercase;letter-spacing:.14em;margin-bottom:22px}
+.eyebrow::before{content:"";width:7px;height:7px;background:var(--amber);border-radius:50%}
+.hero h1{font-family:var(--display);font-weight:900;font-size:clamp(42px,7vw,84px);line-height:.95;letter-spacing:-.02em}
+.hero h1 em{font-style:normal;color:var(--red)}
+.hero-lead{max-width:56ch;font-size:clamp(16px,1.6vw,19px);color:var(--muted);margin:22px 0 0}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}
+.btn{display:inline-flex;align-items:center;gap:9px;height:50px;padding:0 22px;border-radius:4px;font-weight:700;font-size:14px;text-decoration:none;border:2px solid transparent;transition:transform .15s}
+.btn:hover{transform:translateY(-2px)}
+.btn-red{background:var(--red);color:var(--paper)}
+.btn-outline{border-color:var(--line);color:var(--paper)}
+.btn-outline:hover{border-color:var(--paper)}
+.hero-stats{display:flex;flex-wrap:wrap;gap:28px;margin-top:46px;padding-top:26px;border-top:1px solid var(--line)}
+.hero-stat b{display:block;font-family:var(--mono);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.hero-stat span{display:block;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-top:3px}
+
+/* ---------- sign-shape badges: the one structural risk ---------- */
+.badge{position:relative;display:grid;place-items:center;flex-shrink:0;color:var(--asphalt);font-family:var(--mono);font-weight:700}
+.badge-oct{width:64px;height:64px;background:var(--red);clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%)}
+.badge-tri{width:64px;height:58px;background:var(--amber);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.badge-circ{width:56px;height:56px;background:var(--blue);color:var(--paper);border-radius:50%}
+.badge-rect{width:56px;height:56px;background:var(--paper);border-radius:3px}
+
+/* ---------- section shell ---------- */
+.section{padding:78px 0;position:relative}
+.kicker{font-family:var(--mono);font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px}
+.section h2{font-family:var(--display);font-weight:900;font-size:clamp(28px,4vw,46px);letter-spacing:-.015em;max-width:16ch}
+.section-lead{max-width:60ch;color:var(--muted);margin-top:16px;font-size:15.5px}
+
+/* ---------- waypoints (how it works) ---------- */
+.waypoints{margin-top:48px;display:flex;flex-direction:column;gap:0}
+.waypoint{display:grid;grid-template-columns:64px 1fr;gap:22px;padding:26px 0;border-top:1px solid var(--line)}
+.waypoint:last-child{border-bottom:1px solid var(--line)}
+.waypoint h3{font-size:19px;font-weight:700;margin:2px 0 8px}
+.waypoint p{margin:0;color:var(--muted);font-size:14.5px;max-width:60ch}
+.waypoint .tag{display:inline-block;margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:3px;padding:3px 8px}
+
+/* ---------- evidence ---------- */
+.evidence-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:40px}
+.stop-panel{grid-column:1/-1;background:var(--red-ink);border:1px solid #4a1c12;border-radius:6px;padding:34px;display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center}
+.stop-panel .badge-oct{width:96px;height:96px;font-size:14px;letter-spacing:-.02em}
+.stop-panel .num{font-family:var(--mono);font-weight:800;font-size:clamp(40px,6vw,64px);color:var(--paper);line-height:1}
+.stop-panel .cap{color:var(--muted);font-size:14px;margin-top:8px;max-width:50ch}
+.data-panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:22px}
+.data-panel .val{font-family:var(--mono);font-weight:700;font-size:28px;font-variant-numeric:tabular-nums}
+.data-panel .lab{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-top:6px}
+.data-panel .note{font-size:13px;color:var(--muted);margin-top:10px}
+.compare{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:24px}
+.compare h4{margin:0 0 16px;font-size:14px;font-weight:700}
+.compare-row{display:grid;grid-template-columns:150px 1fr 60px;gap:12px;align-items:center;margin-bottom:12px;font-size:13px}
+.compare-row:last-child{margin-bottom:0}
+.compare-track{height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+.compare-fill{height:100%;background:var(--dim)}
+.compare-fill.final{background:var(--red)}
+.compare-val{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- limitation: triangle warning ---------- */
+.warning{margin-top:16px;background:var(--amber-ink);border:1px solid #4a3a12;border-radius:6px;padding:30px;display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:start}
+.warning h3{font-size:16px;margin:0 0 10px;color:var(--amber)}
+.warning p{margin:0 0 10px;color:var(--muted);font-size:14.5px}
+.warning p:last-child{margin-bottom:0}
+.warning a{color:var(--amber);text-decoration:underline}
+
+/* ---------- demo / route-sign CTA ---------- */
+.routesign{margin-top:0;background:var(--blue-ink);border:3px solid var(--blue);border-radius:8px;padding:44px;position:relative;overflow:hidden}
+.routesign::after{content:"";position:absolute;top:14px;right:14px;bottom:14px;left:14px;border:1px dashed rgba(46,110,158,.4);border-radius:4px;pointer-events:none}
+.routesign h3{font-family:var(--display);font-weight:900;font-size:clamp(24px,3.4vw,36px);margin:0 0 14px}
+.routesign p{color:var(--muted);max-width:56ch;margin:0 0 26px}
+.routesign .demo-frame{background:var(--asphalt);border:1px solid var(--line);border-radius:5px;padding:16px 18px;font-family:var(--mono);font-size:12.5px;margin-top:26px}
+.routesign .demo-frame .r{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--line)}
+.routesign .demo-frame .r:last-child{border:0}
+.routesign .demo-frame .k{color:var(--dim)}
+
+/* ---------- footer ---------- */
+footer{padding:40px 0 60px;border-top:1px solid var(--line);margin-top:20px}
+.foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px;font-size:12.5px;color:var(--dim)}
+.foot strong{color:var(--muted)}
+
+@media (max-width:700px){
+  .evidence-grid{grid-template-columns:1fr}
+  .stop-panel{grid-template-columns:1fr;text-align:left}
+  .warning,.routesign{padding:24px}
+  .waypoint{grid-template-columns:52px 1fr;gap:16px}
+  .badge-oct,.badge-tri{transform:scale(.85);transform-origin:left top}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav"><div class="wrap">
+  <a class="brand" href="#top"><span class="mark">S</span>Signal</a>
+  <div class="navlinks">
+    <a href="#how">How it works</a>
+    <a href="#evidence">Evidence</a>
+    <a href="#limits">Limits</a>
+    <a href="#demo">Demo</a>
+  </div>
+</div></nav>
+
+<main id="top" class="route">
+
+<section class="hero"><div class="wrap">
+  <div class="eyebrow">AI/ML Fundamentals · Capstone project</div>
+  <h1>It reads road signs<br>so you don't <em>miss</em> one.</h1>
+  <p class="hero-lead">A computer-vision system that classifies 200 traffic-sign types from the post-Soviet-states sign set, then finds and tracks every one of them in real driving video — not just a clean, cropped photo.</p>
+  <div class="hero-actions">
+    <a class="btn btn-red" href="https://traffic-sign-recognition-95orsuspxcqeuq6yqz8ahk.streamlit.app/" target="_blank" rel="noreferrer">Try it on your own video</a>
+    <a class="btn btn-outline" href="https://github.com/iambekzodboboev/traffic-sign-recognition" target="_blank" rel="noreferrer">Read the repository</a>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat"><b>99.37%</b><span>Held-out test accuracy</span></div>
+    <div class="hero-stat"><b>200</b><span>Sign classes</span></div>
+    <div class="hero-stat"><b>116,642</b><span>Training images</span></div>
+    <div class="hero-stat"><b>2</b><span>Real driving videos tested</span></div>
+  </div>
+</div></section>
+
+<section class="section" id="how"><div class="wrap">
+  <div class="kicker">The route from photo to report</div>
+  <h2>Four stops, in a fixed order.</h2>
+  <p class="section-lead">Each stage's output is exactly what the next stage needs — a photo becomes a crop, a crop becomes a class, a class becomes a line in a trip report.</p>
+  <div class="waypoints">
+    <div class="waypoint">
+      <div class="badge badge-rect">01</div>
+      <div><h3>Photo or driving video</h3><p>A single sign photo, or an uploaded/linked driving clip — 200 real sign classes, 116,642 training images sourced from a Kaggle post-Soviet-states dataset.</p><span class="tag">input</span></div>
+    </div>
+    <div class="waypoint">
+      <div class="badge badge-circ">02</div>
+      <div><h3>Detect &amp; crop</h3><p>Classical color-and-shape detection in OpenCV finds candidate sign regions in each sampled video frame — chosen over a downloaded pretrained detector after a direct test: official COCO-pretrained YOLOv8 missed a clearly visible STOP sign that the classical approach caught on the first try.</p><span class="tag">no external model</span></div>
+    </div>
+    <div class="waypoint">
+      <div class="badge badge-rect">03</div>
+      <div><h3>ResNet18 classifier</h3><p>A pretrained ResNet18, fully fine-tuned, predicts the sign type and category for every crop. Swapping in this backbone — with everything else in the pipeline held identical — was the single change that took accuracy from 87.84% to 99.37%.</p><span class="tag">transfer learning</span></div>
+    </div>
+    <div class="waypoint">
+      <div class="badge badge-circ">04</div>
+      <div><h3>Tracked trip report</h3><p>Detections are matched across sampled frames so the same physical sign isn't reported twice, then rolled up into a named, timestamped, confidence-scored list — click any entry and the source video jumps straight to that moment.</p><span class="tag">output</span></div>
+    </div>
+  </div>
+</div></section>
+
+<section class="section" id="evidence"><div class="wrap">
+  <div class="kicker">Measured on data the model never trained on</div>
+  <h2>Numbers worth stopping for.</h2>
+  <p class="section-lead">The held-out test set was untouched until the final model was already chosen in earlier validation experiments, so this number isn't tuned against it.</p>
+
+  <div class="evidence-grid">
+    <div class="stop-panel">
+      <div class="badge badge-oct">STOP</div>
+      <div><div class="num">99.37%</div><div class="cap">Test accuracy across all 200 classes — random-guess baseline for this task is 0.5%. Macro-F1 comes out to 0.9937, almost identical to raw accuracy, which means the strength is spread evenly across all 200 classes rather than propped up by a few frequent ones.</div></div>
+    </div>
+    <div class="data-panel"><div class="val">88.46%</div><div class="lab">Worst-class accuracy</div><div class="note">Even the single hardest of 200 classes stayed well above chance.</div></div>
+    <div class="data-panel"><div class="val">60%</div><div class="lab">"Unsure" confidence cutoff</div><div class="note">Below this, the system asks for a clearer input instead of guessing.</div></div>
+  </div>
+
+  <div class="compare">
+    <h4>What actually moved the number</h4>
+    <div class="compare-row"><span>From-scratch CNN</span><div class="compare-track"><div class="compare-fill" style="width:87.84%"></div></div><span class="compare-val">87.84%</span></div>
+    <div class="compare-row"><span>ResNet18 (final)</span><div class="compare-track"><div class="compare-fill final" style="width:99.37%"></div></div><span class="compare-val">99.37%</span></div>
+  </div>
+  <p class="section-lead" style="margin-top:20px">The gain wasn't a generic bump — specific baseline confusions (e.g. mirrored left/right minor-road signs, confused 92 times) dropped to <strong style="color:var(--paper)">zero</strong> once the backbone changed, which is harder to explain away as overfitting than a uniform accuracy increase would be.</p>
+</div></section>
+
+<section class="section" id="limits"><div class="wrap">
+  <div class="kicker">Stated, not hidden</div>
+  <h2>Where it still breaks.</h2>
+  <div class="warning">
+    <div class="badge badge-tri">!</div>
+    <div>
+      <h3>Camera-mount assumption in the video detector</h3>
+      <p>The detector's sign-search region was built and verified against two dashboard-mounted test clips; a fixed-fraction assumption in the code means a very different camera angle — a much higher windshield mount, or landscape video — hasn't yet been confirmed to work as well. A scoped fix is already written up, not just noted:
+      <a href="https://github.com/iambekzodboboev/traffic-sign-recognition/blob/master/docs/feature_spec.md" target="_blank" rel="noreferrer">read the feature specification</a>.</p>
+      <p>Two more, found by direct testing on real footage: two sign faces stacked on one post can be boxed together and confidently mislabeled as something unrelated (not just flagged low-confidence); and confidence itself reads as a weaker trust signal on small, blurry video crops than on the large clean photos the classifier was validated on.</p>
+    </div>
+  </div>
+</div></section>
+
+<section class="section" id="demo"><div class="wrap">
+  <div class="kicker">Public demo · no install required</div>
+  <h2>Point it at your own drive.</h2>
+  <div class="routesign">
+    <h3>Signal — road sign scanner →</h3>
+    <p>Upload a driving video or paste a public link. Watch it play while signs get logged live, then get a full trip report — click any sign and the video jumps to that exact second, marked with its name and confidence.</p>
+    <a class="btn btn-red" href="https://traffic-sign-recognition-95orsuspxcqeuq6yqz8ahk.streamlit.app/" target="_blank" rel="noreferrer">Open the live demo</a>
+    <div class="demo-frame">
+      <div class="r"><span class="k">input</span><span>driving_clip.mp4 · 2:03</span></div>
+      <div class="r"><span class="k">detected</span><span>Stop [Priority]</span></div>
+      <div class="r"><span class="k">confidence</span><span>98%</span></div>
+      <div class="r"><span class="k">timestamp</span><span>0:11</span></div>
+    </div>
+  </div>
+</div></section>
+
+</main>
+
+<footer><div class="wrap foot">
+  <div><strong>Bekzod Boboev</strong> · AI/ML Fundamentals Capstone</div>
+  <div>ResNet18 · 200 classes · <a href="https://github.com/iambekzodboboev/traffic-sign-recognition" target="_blank" rel="noreferrer">GitHub</a></div>
+</div></footer>
+
+</body>
+</html>
