@@ -539,13 +539,67 @@ sequence). It meaningfully reduces leakage risk versus naive per-image
 splitting, but is not a perfect guarantee — worth mentioning as a known
 limitation if asked during defense.
 
+## Course deliverables (separate from the numbered build stages 0-10)
+
+Alongside the ML pipeline/bot/video-detection/web-app work above, several
+one-off course assignments were completed. These aren't part of the
+staged roadmap (they're administrative/showcase deliverables, not
+pipeline work), tracked here instead so they aren't lost between
+sessions:
+
+- **`docs/feature_spec.md`** — a filled feature specification (course
+  template) for "make the video detector's search region adaptive
+  instead of tied to one fixed camera mount" (the same gap noted in
+  stage 9/10's honest limitations). Status: drafted and inspect-only
+  evidence-based, but **not implemented** — section 13 (peer review)
+  and the Specification Gate are explicitly left pending real human
+  review, per the template's own gate process. **The user appears to
+  have made their own copy**: `docs/Bekzod Boboev feature spesification.md`
+  (their filename/typo, dated after mine) has identical content — likely
+  their own save-as, not something to touch or reconcile.
+- **`docs/index.html`** — the graded capstone showcase page (course
+  template "EXTC2_STUDENT_SHOWCASE_PACK"), filled from verified project
+  facts only, per that assignment's bounded fill-only rules ("do not
+  redesign the page"). **Complete**: all placeholders filled, GitHub
+  link and the real live Streamlit demo link both verified working.
+  Committed and pushed; kept exactly as delivered for grading,
+  deliberately never redesigned.
+- **`docs/portfolio.html`** — a separate, intentionally redesigned
+  version of the same content for personal portfolio/LinkedIn use
+  (explicitly *not* the graded file, built only after confirming with
+  the user that a redesign should NOT touch the graded `index.html`).
+  Real design concept grounded in the subject: actual road-sign shapes
+  (octagon/triangle/circle) used structurally, not decoratively. Status:
+  **complete**, verified rendering with no console errors, committed
+  and pushed.
+- **`docs/Capstone_Project_Submission.docx`** — the course's academic
+  integrity declaration + submission form, filled from verified facts
+  (name, title, repo URL, description, the real Streamlit link). Left
+  deliberately blank: Date, Student Signature, Project Track checkbox,
+  and Repository Access Confirmation checkbox — all personal
+  attestations only the user can make, not facts fillable on their
+  behalf. **Not committed to git** (personal document with pending
+  fields, same reasoning as the feature spec). **Known loose end**: the
+  original file was locked by an open Word process when the demo-link
+  update was made, so the updated copy is sitting at
+  `docs/Capstone_Project_Submission_updated.docx` instead — needs Word
+  closed, then that file swapped into the real filename (by the user,
+  or by a future session once Word is confirmed closed).
+- **`Showcase_Content_Card_and_Quick_QA.docx`** (in the user's Downloads,
+  not yet copied into the repo) — a companion worksheet for the showcase
+  page assignment. **Asked about once, never confirmed** — the user was
+  asked "want me to pick that back up now?" and the conversation moved
+  on to the redesign/demo-link work before they answered. Still fully
+  open; ask directly rather than assuming it's no longer wanted.
+
 ## Current task
 
-Stage 9 (9.1-9.6), stage 10 (Streamlit web demo), and stage 8.1/8.3 are
-now all complete. The only remaining open item in the whole project is
-8.2 (`README.md`) — and actually deploying the Streamlit app to
-share.streamlit.io, which only the user can do (needs their own GitHub
-login).
+All numbered build stages (0-10) are complete, including a verified,
+**live, working deployment** of the Streamlit app at
+`https://traffic-sign-recognition-95orsuspxcqeuq6yqz8ahk.streamlit.app/`
+(confirmed rendering its real content, not just assumed). The only
+open items across the whole project are 8.2 and the course-deliverable
+loose ends listed just above.
 
 ## Next
 
@@ -553,6 +607,11 @@ login).
   project report `.docx` and presentation `.pptx` already cover this
   narratively, but `README.md` itself — the GitHub-facing doc — is
   still the original stub)
+- Swap `docs/Capstone_Project_Submission_updated.docx` into
+  `docs/Capstone_Project_Submission.docx` once Word has released the
+  lock on the original
+- Ask whether the Showcase Content Card and Quick QA worksheet is still
+  wanted (see "Course deliverables" above)
 
 ## Known problems / blockers
 

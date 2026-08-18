@@ -666,6 +666,20 @@ end, start over with one click.
       timestamp, and that manually scrubbing the video (not via a row
       click) correctly clears a stale marker rather than leaving one
       pinned to the wrong sign.
+- [x] 10.7 Deployment confirmed genuinely live, not just assumed. The
+      user deployed to Streamlit Community Cloud themselves (needs
+      their own GitHub login, not something doable on their behalf);
+      the first check hit a real `503`/blank-content state that looked
+      like either a slow cold-start or a crash, indistinguishable from
+      the outside -- resolved on retry (a normal cold-start after all).
+      Confirmed working two ways, not just by trusting the retry: `read_page`
+      into the app's own iframe showed its real rendered content, and
+      a direct link-click end-to-end run (from the showcase page) found
+      78 real signs in a real test video. The live URL is now wired
+      into every reference to it across the project: `docs/index.html`
+      (the graded showcase, 3 buttons), `docs/portfolio.html` (the
+      personal redesign), and `docs/Capstone_Project_Submission.docx`
+      field 6.
 
 **Code map**: `streamlit_app/app.py` (the whole app) +
 `streamlit_app/requirements.txt` (its own deps, incl. a CPU-only
