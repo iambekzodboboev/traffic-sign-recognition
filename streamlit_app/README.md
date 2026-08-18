@@ -1,11 +1,19 @@
-# Signal — road sign scanner (public web demo)
+# Signal — combined project showcase + live scanner (public web app)
 
-A public-facing web app for the video sign-detection pipeline built in
-`video_detection/` (stage 9). Upload a driving video or paste a link,
-watch the video actually play while signs get logged live as it scans,
-then get a full trip report when it's done — click any sign in the
-report and the video jumps to that exact moment, paused, with a box and
-name/confidence label marking it.
+A single Streamlit app with two pages, switched via a top nav (no page
+reload, state preserved):
+
+- **Overview** — the project showcase: the problem, the four-stage
+  pipeline, headline results (99.37% test accuracy) with a
+  baseline-vs-final comparison, and an honest "known limitations"
+  section. Content is the same substance as the graded showcase page
+  (`docs/index.html`), restyled to the same dark theme as the scanner so
+  the two pages read as one product rather than two different designs.
+- **Live Scanner** — upload a driving video or paste a link, watch the
+  video actually play while signs get logged live as it scans, then get
+  a full trip report when it's done — click any sign in the report and
+  the video jumps to that exact moment, paused, with a box and
+  name/confidence label marking it.
 
 **Isolation, same rule as `video_detection/` itself**: this is a
 separate component. It reuses `video_detection/detector.py`,
@@ -13,6 +21,12 @@ separate component. It reuses `video_detection/detector.py`,
 `process_video.py` read-only — no detection/classification/tracking
 logic is duplicated here, and it never touches `bot.py` or anything it
 depends on.
+
+**Note on `docs/index.html`**: that file is the separately graded
+course showcase page and is deliberately left untouched — it has its
+own "do not redesign" rule from the assignment. This app's Overview
+page is a new, independent presentation of the same true facts, not a
+replacement of that file.
 
 ## Run it locally
 
@@ -44,6 +58,23 @@ present (both already in the repo — see note below on the model file).
 
 ## Design decisions worth knowing about
 
+- **Page switching is a plain `st.session_state["page"]` flag, not
+  `st.tabs` or a multi-file `st.navigation` setup.** `st.tabs` was
+  tried conceptually and rejected: Streamlit can't be told which tab is
+  selected, so any `st.rerun()` during the scan (there are several)
+  would silently bounce the user back to the first tab. A session-state
+  flag set by plain nav buttons persists correctly across every rerun.
+- **The app theme moved from light to dark** (`.streamlit/config.toml`:
+  `base = "dark"`, cyan `primaryColor`) to match the showcase content's
+  own palette, and the scanner's own CSS (category pills, result cards,
+  the embedded video-player component) was recolored to match — the
+  goal was one visual system across both pages, not two apps stapled
+  together.
+- **`stat_card_html()` and `bar_row_html()` are small shared helpers**
+  used by both pages — the Overview page's results metrics/comparison
+  bars and the Scanner's trip-report stat cards/category breakdown
+  render through the same two functions, so they're guaranteed to look
+  identical rather than visually drifting apart over time.
 - **The trained model (`models/resnet18_transfer_15ep.pt`, ~45MB) is
   committed to the repo**, unlike everywhere else in this project where
   `*.pt` files are gitignored build artifacts. Streamlit Cloud builds
